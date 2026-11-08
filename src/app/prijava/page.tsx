@@ -28,7 +28,7 @@ function Form() {
         <label className="block"><span className="label">Korisničko ime</span><input className="input mt-1" autoComplete="username" value={username} onChange={(e) => setU(e.target.value)} required minLength={3} data-testid="username" /></label>
         {mode === 'register' && <label className="block"><span className="label">Ime kralja (prikaz)</span><input className="input mt-1" value={displayName} maxLength={24} onChange={(e) => setD(e.target.value)} placeholder="npr. Marko I." data-testid="displayname" /></label>}
         <label className="block"><span className="label">Lozinka</span><input className="input mt-1" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setP(e.target.value)} required minLength={8} data-testid="password" /></label>
-        {err && <p role="alert" className="rounded-xl bg-red-50 border-2 border-red-200 p-2.5 text-sm text-red-800 font-bold">{err}</p>}
+        {err && <p role="alert" className="rounded-xl bg-red-50 border border-red-200 p-2.5 text-sm text-red-800 font-medium">{err}</p>}
         <button className="btn btn-yellow w-full" disabled={busy} data-testid="auth-submit">{busy ? 'Trenutak…' : mode === 'login' ? 'Prijavi se' : 'Stvori račun'}</button>
         <p className="text-xs text-muted text-center">{mode === 'register' ? 'Lozinka: barem 8 znakova.' : 'Nemaš račun? Odaberi Registracija.'}</p>
       </form>

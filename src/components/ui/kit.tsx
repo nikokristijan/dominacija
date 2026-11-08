@@ -25,7 +25,7 @@ export function Sheet({ open, onClose, children, title, tall = false, modeless =
         <div className={`fixed inset-0 z-50 flex ${floating ? 'items-start justify-end pointer-events-none pt-[88px] pr-4 pb-4' : 'items-end lg:items-center justify-center'} ${modeless && !desktop ? 'pointer-events-none' : ''}`} role="dialog" aria-modal={!modeless && !floating} aria-label={title}>
           {!modeless && !floating && <motion.div className="absolute inset-0 bg-black/25" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />}
           <motion.div
-            className={`relative bg-white flex flex-col pointer-events-auto ${floating ? 'w-[400px] max-h-full rounded-[22px] float-shadow' : `w-full max-w-xl rounded-t-[24px] lg:rounded-[24px] float-shadow ${tall ? 'h-[92dvh] lg:h-auto lg:max-h-[88dvh]' : modeless ? 'max-h-[62dvh]' : 'max-h-[88dvh]'}`}`}
+            className={`relative bg-white flex flex-col pointer-events-auto ${floating ? 'w-[400px] max-h-full rounded-[20px] float-shadow' : `w-full max-w-xl rounded-t-[24px] lg:rounded-[24px] float-shadow ${tall ? 'h-[92dvh] lg:h-auto lg:max-h-[88dvh]' : modeless ? 'max-h-[62dvh]' : 'max-h-[88dvh]'}`}`}
             initial={reduce ? { opacity: 0, x: 0, y: 0 } : floating ? { x: 40, y: 0, opacity: 0 } : { x: 0, y: '100%', opacity: 1 }} animate={{ x: 0, y: 0, opacity: 1 }} exit={reduce ? { opacity: 0 } : floating ? { x: 40, opacity: 0 } : { y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 340 }}
             drag={reduce || floating ? false : 'y'} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.5 }} onDragEnd={(_, i) => { if (i.offset.y > 110 || i.velocity.y > 600) onClose(); }}
@@ -139,7 +139,7 @@ export function Counter({ value, onChange, min = 0, max = 99, step = 1 }: { valu
 /** Red s akcijom (naslov + opis + strelica) — koristi se u popupima. */
 export function ActionRow({ icon, title, sub, onClick, disabled, testId, tour }: { icon: IconName; title: string; sub?: string; onClick: () => void; disabled?: boolean; testId?: string; tour?: string }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} data-testid={testId} data-tour={tour} className="w-full flex items-center gap-3.5 rounded-2xl border border-line px-4 py-3 text-left hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-40 transition-colors">
+    <button type="button" onClick={onClick} disabled={disabled} data-testid={testId} data-tour={tour} className="w-full flex items-center gap-3.5 rounded-xl border border-line px-4 py-3 text-left hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-40 transition-colors">
       <Icon name={icon} size={24} stroke={1.6} className="text-neutral-700 shrink-0" />
       <span className="flex-1 min-w-0"><span className="block font-semibold leading-tight">{title}</span>{sub && <span className="block text-[13px] text-muted leading-snug">{sub}</span>}</span>
       <Icon name="chevron" size={18} className="text-neutral-300 shrink-0" />

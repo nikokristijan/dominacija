@@ -2,7 +2,7 @@
 
 Asinkrona višeigračka strategija (4–8 igrača, 7 dana, istovremeno razrješenje naredbi). Mobile‑first PWA, sav sadržaj na hrvatskom.
 
-**Dizajn (v0.2):** ultra‑minimalan bijeli UI + lebdeća, blago izometrijska karta organskog oblika otoka (bez okvira, bez maskote, bez crtanih likova, bez emojija). Svi popupi su kontekstualni: plutajući desni panel na desktopu, povlačivi donji list na mobitelu. **Uvodni vodič** (`/k/tutorial/karta`, dostupan i bez računa) vodi kroz sve funkcije probnom bitkom.
+**Dizajn (v0.2):** ultra‑minimalan bijeli UI + lebdeća, blago izometrijska karta organskog oblika otoka (bez okvira, bez maskote, bez crtanih likova, bez emojija). Svi popupi su kontekstualni: plutajući desni panel na desktopu, povlačivi donji list na mobitelu. **Pomoć (?)** u gornjoj traci (pro savjeti, pojmovnik, ponovno pokretanje vodiča) i preporuke „Što dalje?” na početnoj stranici (`src/lib/suggestions.ts`, samo iz podataka koje igrač vidi). **Uvodni vodič** (`/k/tutorial/karta`, dostupan i bez računa) vodi kroz sve funkcije probnom bitkom.
 
 > **Pravilo ovog dokumenta:** funkcija je označena „završeno” samo ako je implementirana **i** testirana. Sve ostalo je izričito navedeno kao ograničenje.
 
@@ -68,7 +68,7 @@ zaključavanje (nacrti se odbacuju; neaktivni → automatska obrana) → protuob
 |---|---|
 | 1 Vizualna osnova | **Završeno**: dizajn sustav, maskota (8 raspoloženja), 120 SVG asseta, navigacija, dashboard, responzivni raspored |
 | 2 Svjetska karta | **Završeno (redizajn v0.2)**: SVG, organski otok, povišeni 2.5D prikaz s bočnim stranama i sjenom, rijeke/jezera/šume/planine/naselja, granice po odnosu (ti ljubičasto, saveznik plavo, protivnik crveno, neutralno zlatno), zoom/pan/pinch, magla rata |
-| Vodič | **Završeno**: 19 koraka, probna bitka na pravom engineu u pregledniku (lokalni transport, ništa se ne sprema), isticanje elemenata, radi na mobitelu i desktopu |
+| Vodič | **Završeno**: 24 koraka (uklj. teren/protuteže, opskrba, izdaja i ugled, tajni cilj, brzi podsjetnik), „Pro savjet” okviri, gumb Natrag, probna bitka na pravom engineu u pregledniku (lokalni transport, ništa se ne sprema), isticanje elemenata, radi na mobitelu i desktopu |
 | 3 Osnovna igra | **Završeno**: kampanje, pozivni kodovi, lobby, ZB, naredbe, nacrti, dnevne runde, raspored po vremenskoj zoni |
 | 4 Vojska | **Završeno**: 5 strategija, formacije, logistika, opskrba, povlačenje, rezerva, bojna izvješća |
 | 5 Ekonomija | **Završeno**: proizvodnja, zgrade (3 razine), populacija, porezi, stabilnost, pobune s upozorenjem |
@@ -95,7 +95,7 @@ zaključavanje (nacrti se odbacuju; neaktivni → automatska obrana) → protuob
 
 - `tests/engine.test.ts` (70): generiranje karte i poštene pozicije, ZB limit, rezervacija resursa, nacrti, validacija, konfigurabilnost troškova, prognoza = stvarno razrješenje, porezi/stabilnost, gradnja/novačenje, glad, pobuna (tek nakon upozorenja), borba (determinizam, teren, tvrđava, protuteže, opsada, zasjeda, opskrba, povlačenje, koalicija, objašnjenja), istovremenost i neovisnost o redoslijedu unosa, sukob pripajanja, uvjetne naredbe (4), diplomacija (savez, izdaja, oporavak ugleda, trgovina, poruke), špijunaža i fog (view ne otkriva tuđe), tehnologija, Otpor (pad glavnog grada, jeftino novačenje, ustanak, povratak), bodovanje, cijela kampanja od 7 dana, neaktivni igrači, događaji, opskrba, pregled naredbe.
 - `tests/rls.test.ts` (12): izolacija naredbi, tajnih ciljeva, resursa, garnizona, poruka; javni pogled teritorija; skriven rastav bodova do kraja; klijent ne može pisati; CHECK ograničenja; idempotentan ključ razrješenja.
-- `tests/e2e/tutorial.mjs` (19 koraka, desktop i mobilni): cijeli vodič kao stvarni korisnik bez prijave — odabir teritorija, novačenje, gradnja, porezi, istraživanje, špijunaža, diplomacija, uvjetna naredba, 6-koračni planer napada, zaključavanje, razrješenje, bojno izvješće s ishodom „Napad uspio”.
+- `tests/e2e/tutorial.mjs` (18 radnji + informativni koraci, desktop i mobilni): cijeli vodič kao stvarni korisnik bez prijave — odabir teritorija, novačenje, gradnja, porezi, istraživanje, špijunaža, diplomacija, uvjetna naredba, 6-koračni planer napada, zaključavanje, razrješenje, bojno izvješće s ishodom „Napad uspio”.
 - `tests/e2e/smoke.mjs` (19 koraka u Chromiumu, mobilni viewport + desktop): registracija, stvaranje simulacije, karta, odabir teritorija, novačenje, nacrt→predaja→uređivanje→uklanjanje, uvjetna naredba, planer napada (6 koraka), diplomacija i poruke, tehnologija, porezi, profil, ljestvica, zaključavanje + razrješenje, izvještaj, obavijesti, cijela kampanja + ekran rezultata, admin, desktop raspored. Bez konzolnih grešaka i bez HTTP 5xx.
 
 ## Konfiguracija okoline

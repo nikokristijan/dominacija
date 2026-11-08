@@ -32,15 +32,15 @@ export function Lobby() {
           <div className="label">Igrači</div>
           {meta.members.map((m) => (
             <div key={m.playerId} className="flex items-center gap-3 rounded-xl bg-neutral-50 p-2">
-              {m.faction ? <FactionBadge faction={m.faction} size={36} /> : <div className="h-9 w-9 rounded-full bg-white grid place-items-center text-muted font-black">?</div>}
-              <div className="flex-1 font-extrabold">{m.name}{m.isMe && <span className="chip ml-2">Ti</span>}{m.isOwner && <span className="chip chip-yellow ml-1">Vlasnik</span>}</div>
+              {m.faction ? <FactionBadge faction={m.faction} size={36} /> : <div className="h-9 w-9 rounded-full bg-white grid place-items-center text-muted font-semibold">?</div>}
+              <div className="flex-1 font-semibold">{m.name}{m.isMe && <span className="chip ml-2">Ti</span>}{m.isOwner && <span className="chip chip-yellow ml-1">Vlasnik</span>}</div>
             </div>
           ))}
-          {Array.from({ length: Math.max(0, meta.minPlayers - meta.members.length) }).map((_, i) => <div key={i} className="rounded-2xl border-2 border-dashed border-line p-3 text-center text-muted font-bold">Slobodno mjesto</div>)}
+          {Array.from({ length: Math.max(0, meta.minPlayers - meta.members.length) }).map((_, i) => <div key={i} className="rounded-xl border border-dashed border-line p-3 text-center text-muted font-medium">Slobodno mjesto</div>)}
         </div>
         {meta.isOwner ? (
           <button className="btn btn-yellow w-full min-h-12" disabled={!can || busy} onClick={() => act(async () => { await api(`/api/campaigns/${id}/start`, {}); })} data-testid="start-campaign">{can ? 'Pokreni kampanju!' : `Treba još ${meta.minPlayers - meta.members.length} igrača`}</button>
-        ) : <p className="text-center font-bold">Vlasnik će pokrenuti kampanju kad se skupi dovoljno igrača.</p>}
+        ) : <p className="text-center font-medium">Vlasnik će pokrenuti kampanju kad se skupi dovoljno igrača.</p>}
         <button className="btn btn-ghost w-full" disabled={busy} onClick={() => act(async () => { await api(`/api/campaigns/${id}/leave`, {}); router.push('/igra'); })}>{meta.isOwner ? 'Obriši kampanju' : 'Napusti kampanju'}</button>
       </div>
     </main>

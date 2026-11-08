@@ -54,7 +54,7 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
   return (
     <div className="space-y-4" data-testid="territory-details">
       <div className="flex items-center gap-3.5">
-        <div className="h-12 w-12 rounded-2xl grid place-items-center bg-neutral-50 text-neutral-700 shrink-0">{t.building || t.isCapital ? <Building type={t.building ?? 'capital'} size={26} /> : <Icon name="map" size={24} stroke={1.6} />}</div>
+        <div className="h-12 w-12 rounded-xl grid place-items-center bg-neutral-50 text-neutral-700 shrink-0">{t.building || t.isCapital ? <Building type={t.building ?? 'capital'} size={26} /> : <Icon name="map" size={24} stroke={1.6} />}</div>
         <div className="min-w-0 flex-1">
           <h3 className="text-xl leading-tight truncate" data-testid="territory-name">{t.name}</h3>
           <div className="text-sm text-muted flex items-center gap-1.5 flex-wrap"><span>{cfg.terrain[t.terrain].name}{region ? ` · ${region.name}` : ''}</span></div>

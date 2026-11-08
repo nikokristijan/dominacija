@@ -69,6 +69,7 @@ export function MapScreen() {
     { icon: 'layers', label: `Sloj: ${overlay === 'owners' ? 'vlasnici' : overlay === 'regions' ? 'regije' : 'proizvodnja'}`, onClick: cycle, tour: 'layers' },
     { icon: 'swords', label: 'Vojna operacija', active: !!op, onClick: () => (op ? setOp(null) : startOp(sel && sel.owner !== v.me.id ? sel.id : null)), tour: 'tool-op' },
     { icon: 'flask', label: 'Istraživanje', href: `/k/${g.id}/tehnologija` },
+    ...(v.phase === 'planning' ? [{ icon: (v.me.ready ? 'unlock' : 'lock') as IconName, label: v.me.ready ? 'Otključaj naredbe' : 'Zaključaj naredbe (spremno)', active: v.me.ready, onClick: () => { void g.act(`/api/campaigns/${g.id}/orders`, { action: 'ready', ready: !v.me.ready }, { successMsg: v.me.ready ? 'Naredbe otključane.' : 'Naredbe označene kao spremne.' }).catch(() => undefined); }, tour: 'tool-ready' }] : []),
   ];
 
   return (
@@ -109,7 +110,7 @@ export function MapScreen() {
       <Sheet open={!!op} onClose={() => setOp(null)} title="Vojna operacija" side modeless>
         {op && <OperationPopup target={op.target} from={op.from} setTarget={(t) => setOp((o) => (o ? { ...o, target: t } : o))} setFrom={(f) => setOp((o) => (o ? { ...o, from: f } : o))} onClose={() => setOp(null)} />}
       </Sheet>
-      <Sheet open={!!composer} onClose={() => setComposer(null)} title="Naredba" tall>
+      <Sheet open={!!composer} onClose={() => setComposer(null)} title="Naredba" tall side>
         {composer && (composer.type === 'conditional'
           ? <><h2 className="text-xl mb-3">Uvjetna naredba</h2><ConditionalComposer territoryId={composer.territoryId} onDone={() => setComposer(null)} /></>
           : <><h2 className="text-xl mb-0.5 flex items-center gap-2"><Icon name={ORDER_LABELS[composer.type].icon} size={22} />{ORDER_LABELS[composer.type].name}</h2><p className="text-sm text-muted mb-4">{ORDER_LABELS[composer.type].desc}</p>

@@ -20,12 +20,12 @@ export function RankingScreen() {
         <section className="space-y-2">
           {v.ranking.map((r, i) => { const p = v.players[r.playerId]; return (
             <div key={r.playerId} className={`card-flat flex items-center gap-3 ${r.playerId === v.me.id ? 'border-accent-600 bg-yellow-50/60' : ''}`}>
-              <div className={`h-9 w-9 shrink-0 rounded-full grid place-items-center font-display font-black ${i === 0 ? 'bg-accent text-ink' : 'bg-primary-100 text-primary'}`}>{i + 1}</div>
+              <div className={`h-9 w-9 shrink-0 rounded-full grid place-items-center font-display font-semibold ${i === 0 ? 'bg-accent text-ink' : 'bg-primary-100 text-primary'}`}>{i + 1}</div>
               <FactionBadge faction={p.faction} size={38} />
-              <div className="flex-1 min-w-0"><div className="font-display text-lg text-secondary truncate">{p.name}{p.status === 'resistance' && <span className="chip chip-bad ml-1">Otpor</span>}</div><div className="text-xs text-muted font-bold">{r.territories} teritorija · {r.cities} gradova · ugled {Math.round(p.reputation.score)}</div></div>
+              <div className="flex-1 min-w-0"><div className="font-display text-lg text-secondary truncate">{p.name}{p.status === 'resistance' && <span className="chip chip-bad ml-1">Otpor</span>}</div><div className="text-xs text-muted font-medium">{r.territories} teritorija · {r.cities} gradova · ugled {Math.round(p.reputation.score)}</div></div>
               <div className="font-display text-3xl text-primary">{r.score}</div>
             </div>); })}
-          <p className="text-xs text-muted font-bold">Prikazani su javni bodovi. Tajni ciljevi (+5) otkrivaju se tek na kraju kampanje.</p>
+          <p className="text-xs text-muted font-medium">Prikazani su javni bodovi. Tajni ciljevi (+5) otkrivaju se tek na kraju kampanje.</p>
         </section>
         <section className="card"><SectionTitle icon="trophy">Kretanje bodova</SectionTitle>
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Kretanje bodova po danima">
@@ -37,7 +37,7 @@ export function RankingScreen() {
         </section>
         <section className="card"><SectionTitle>Tvoji bodovi</SectionTitle>
           <table className="w-full text-sm"><tbody>
-            {[['Običan teritorij (1)', v.scoreBreakdownMine.territories], ['Gradovi i vlastiti glavni grad (4)', v.scoreBreakdownMine.cities], ['Tuđi glavni gradovi (10)', v.scoreBreakdownMine.enemyCapitals], ['Kontrola regija (8)', v.scoreBreakdownMine.regions], ['Vojna postignuća', v.scoreBreakdownMine.military], ['Tajni cilj (5)', v.scoreBreakdownMine.objective]].map(([l, n]) => <tr key={l as string} className="border-b border-line/60 last:border-0"><td className="py-1.5 font-bold text-muted">{l}</td><td className="py-1.5 text-right font-display font-extrabold">{n}</td></tr>)}
+            {[['Običan teritorij (1)', v.scoreBreakdownMine.territories], ['Gradovi i vlastiti glavni grad (4)', v.scoreBreakdownMine.cities], ['Tuđi glavni gradovi (10)', v.scoreBreakdownMine.enemyCapitals], ['Kontrola regija (8)', v.scoreBreakdownMine.regions], ['Vojna postignuća', v.scoreBreakdownMine.military], ['Tajni cilj (5)', v.scoreBreakdownMine.objective]].map(([l, n]) => <tr key={l as string} className="border-b border-line/60 last:border-0"><td className="py-1.5 font-medium text-muted">{l}</td><td className="py-1.5 text-right font-display font-semibold">{n}</td></tr>)}
             <tr><td className="py-2 font-display text-lg text-secondary">Ukupno</td><td className="py-2 text-right font-display text-2xl text-primary">{v.scoreBreakdownMine.total}</td></tr>
           </tbody></table>
         </section>

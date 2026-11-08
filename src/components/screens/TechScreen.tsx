@@ -27,38 +27,38 @@ export function TechScreen() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="tech-screen">
       <div className="max-w-5xl mx-auto p-3 lg:p-5 space-y-3">
-        <header className="flex items-center gap-3"><Icon name="flask" size={32} stroke={1.5} className="text-neutral-400" /><div><h1 className="text-2xl text-secondary">Tehnologija</h1><p className="text-sm text-muted font-bold">Istraženo: {v.me.techs.length}/{TECHS.length}. Svako istraživanje košta 3 ZB i resurse — izaberi pametno, u 7 dana ne možeš sve.</p></div></header>
-        <div className="scroll-x">{(['all', ...Object.keys(TECH_CATEGORIES)] as Array<TechCategory | 'all'>).map((c) => <button key={c} onClick={() => setCat(c)} className={`shrink-0 rounded-2xl px-3.5 min-h-10 font-extrabold text-sm ${cat === c ? 'tab-active' : 'bg-white border-2 border-line text-primary'}`}>{c === 'all' ? 'Sve' : TECH_CATEGORIES[c].name}</button>)}</div>
+        <header className="flex items-center gap-3"><Icon name="flask" size={32} stroke={1.5} className="text-neutral-400" /><div><h1 className="text-2xl text-secondary">Tehnologija</h1><p className="text-sm text-muted font-medium">Istraženo: {v.me.techs.length}/{TECHS.length}. Svako istraživanje košta 3 ZB i resurse — izaberi pametno, u 7 dana ne možeš sve.</p></div></header>
+        <div className="scroll-x">{(['all', ...Object.keys(TECH_CATEGORIES)] as Array<TechCategory | 'all'>).map((c) => <button key={c} onClick={() => setCat(c)} className={`pill ${cat === c ? 'pill-on' : ''}`}>{c === 'all' ? 'Sve' : TECH_CATEGORIES[c].name}</button>)}</div>
         <div className={`grid gap-4 ${cat === 'all' ? 'lg:grid-cols-5 sm:grid-cols-2' : 'grid-cols-1 max-w-md mx-auto'}`}>
           {cats.map((c) => (
-            <section key={c} className="rounded-3xl p-3 border-2" style={{ borderColor: TECH_CATEGORIES[c].color + '55', background: TECH_CATEGORIES[c].color + '12' }}>
-              <h2 className="font-display text-lg flex items-center gap-2 mb-2" style={{ color: TECH_CATEGORIES[c].color }}><Icon name={(({ sword: 'sword', coin: 'coins', crown: 'crown', eye: 'eye', handshake: 'handshake' } as Record<string, IconName>)[TECH_CATEGORIES[c].icon])} size={22} />{TECH_CATEGORIES[c].name}</h2>
-              <div className="relative flex flex-col gap-3 pl-0">
-                <div className="absolute left-1/2 top-4 bottom-4 w-1.5 -translate-x-1/2 rounded-full" style={{ background: TECH_CATEGORIES[c].color + '40' }} />
+            <section key={c} className="rounded-2xl p-3 border border-line bg-neutral-50/60">
+              <h2 className="text-sm font-semibold flex items-center gap-2 mb-3 text-ink"><Icon name={(({ sword: 'sword', coin: 'coins', crown: 'crown', eye: 'eye', handshake: 'handshake' } as Record<string, IconName>)[TECH_CATEGORIES[c].icon])} size={18} className="text-neutral-500" />{TECH_CATEGORIES[c].name}<span className="ml-auto text-xs font-medium text-muted">{TECHS.filter((t) => t.category === c && v.me.techs.includes(t.id)).length}/{TECHS.filter((t) => t.category === c).length}</span></h2>
+              <div className="relative flex flex-col gap-2.5">
+                <div className="absolute left-1/2 top-3 bottom-3 w-px -translate-x-1/2 bg-neutral-200" />
                 {TECHS.filter((t) => t.category === c).map((t) => { const st = state(t); return (
-                  <button key={t.id} onClick={() => setSel(t)} className={`relative text-left rounded-2xl border-2 p-2.5 bg-white transition-transform active:scale-[0.98] ${st === 'done' ? 'border-good' : st === 'available' ? 'border-primary' : st === 'planned' ? 'border-accent-600' : 'border-line opacity-60'}`} style={{ boxShadow: st === 'available' ? '0 3px 0 var(--color-primary)' : undefined }} data-testid={`tech-${t.id}`}>
-                    <div className="flex items-center justify-between gap-2"><span className="font-display text-[15px] text-secondary leading-tight">{t.name}</span>
-                      {st === 'done' ? <span className="h-6 w-6 rounded-full bg-good text-white grid place-items-center shrink-0"><Icon name="check" size={14} stroke={3} /></span> : st === 'locked' ? <Icon name="lock" size={16} className="text-muted shrink-0" /> : st === 'planned' ? <span className="chip chip-yellow">u planu</span> : <span className="chip">{t.tier}</span>}</div>
-                    <div className="text-xs text-muted font-semibold mt-0.5 line-clamp-2">{t.description}</div>
+                  <button key={t.id} onClick={() => setSel(t)} className={`relative text-left rounded-xl border p-3 bg-white transition active:scale-[0.99] ${st === 'done' ? 'border-good/50' : st === 'available' ? 'border-primary' : st === 'planned' ? 'border-primary/50 bg-primary-100/40' : 'border-line opacity-60'}`} data-testid={`tech-${t.id}`}>
+                    <div className="flex items-center justify-between gap-2"><span className="text-[15px] font-semibold text-ink leading-tight">{t.name}</span>
+                      {st === 'done' ? <span className="h-5 w-5 rounded-full bg-good text-white grid place-items-center shrink-0"><Icon name="check" size={12} stroke={3} /></span> : st === 'locked' ? <Icon name="lock" size={15} className="text-muted shrink-0" /> : st === 'planned' ? <span className="chip chip-yellow">u planu</span> : <span className="chip">razina {t.tier}</span>}</div>
+                    <div className="text-xs text-muted mt-1 line-clamp-2">{t.description}</div>
                   </button>); })}
               </div>
             </section>))}
         </div>
       </div>
-      <Sheet open={!!sel} onClose={() => setSel(null)} title="Tehnologija">
+      <Sheet open={!!sel} onClose={() => setSel(null)} title="Tehnologija" side>
         {sel && (() => { const st = state(sel); return (
           <div className="space-y-3">
-            <div className="flex items-start gap-3"><Icon name="flask" size={36} stroke={1.5} className="text-neutral-400 shrink-0" /><div><div className="chip" style={{ background: TECH_CATEGORIES[sel.category].color + '22', color: TECH_CATEGORIES[sel.category].color }}>{TECH_CATEGORIES[sel.category].name} · razina {sel.tier}</div><h2 className="text-2xl text-secondary mt-1">{sel.name}</h2></div></div>
-            <p className="font-bold">{sel.description}</p>
-            <div className="rounded-2xl bg-primary-100/60 p-3 space-y-1"><div className="label">Cijena</div><div className="flex items-center gap-3"><span className="chip chip-yellow">3 ZB</span><CostLine cost={costOf(sel)} /></div>{costOf(sel).gold !== sel.cost.gold && <div className="text-xs text-good font-bold">Popust istraživačkih centara uračunat.</div>}</div>
-            {sel.requires.length > 0 && <div className="text-sm font-bold">Preduvjet: {sel.requires.map((r) => TECHS.find((x) => x.id === r)?.name).join(', ')} {sel.requires.every((r) => v.me.techs.includes(r)) ? '✓' : ''}</div>}
+            <div className="flex items-start gap-3"><Icon name="flask" size={36} stroke={1.5} className="text-neutral-400 shrink-0" /><div><div className="chip">{TECH_CATEGORIES[sel.category].name} · razina {sel.tier}</div><h2 className="text-2xl text-secondary mt-1">{sel.name}</h2></div></div>
+            <p className="font-medium">{sel.description}</p>
+            <div className="rounded-xl bg-primary-100/60 p-3 space-y-1"><div className="label">Cijena</div><div className="flex items-center gap-3"><span className="chip chip-yellow">3 ZB</span><CostLine cost={costOf(sel)} /></div>{costOf(sel).gold !== sel.cost.gold && <div className="text-xs text-good font-medium">Popust istraživačkih centara uračunat.</div>}</div>
+            {sel.requires.length > 0 && <div className="text-sm font-medium">Preduvjet: {sel.requires.map((r) => TECHS.find((x) => x.id === r)?.name).join(', ')} {sel.requires.every((r) => v.me.techs.includes(r)) ? '✓' : ''}</div>}
             {st === 'done' && <div className="chip chip-good">Istraženo</div>}
             {st === 'planned' && <div className="chip chip-yellow">Istraživanje je u planu naredbi.</div>}
             {st === 'available' && <button className="btn btn-yellow w-full" disabled={v.phase !== 'planning' || v.me.ready} onClick={() => { setComposer(sel); setSel(null); }} data-testid="research-btn"><Icon name="flask" size={18} />Istraži</button>}
             {st === 'locked' && <div className="chip">Zaključano — istraži preduvjet.</div>}
           </div>); })()}
       </Sheet>
-      <Sheet open={!!composer} onClose={() => setComposer(null)} title="Istraživanje" tall>
+      <Sheet open={!!composer} onClose={() => setComposer(null)} title="Istraživanje" tall side>
         {composer && <><h2 className="text-2xl text-secondary mb-3">Istraživanje: {composer.name}</h2><OrderComposer type="research" initial={{ type: 'research', params: { techId: composer.id } }} onDone={() => setComposer(null)} /></>}
       </Sheet>
     </div>

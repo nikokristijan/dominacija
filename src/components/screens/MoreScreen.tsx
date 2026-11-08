@@ -24,7 +24,7 @@ export function MoreScreen() {
       <div className="max-w-2xl mx-auto p-3 lg:p-5 space-y-4">
         <h1 className="text-2xl text-secondary">Više</h1>
         <div className="grid grid-cols-2 gap-3">{items.map(([l, h, i, b]) => (
-          <Link key={h} href={base + h} className="card !p-4 flex items-center gap-3 active:translate-y-0.5 relative" data-testid={`more-${h.slice(1)}`}><span className="h-12 w-12 rounded-2xl bg-primary-100 text-primary grid place-items-center"><Icon name={i} size={26} /></span><span className="font-display text-lg text-secondary">{l}</span>{b && <span className="absolute top-2 right-2 chip chip-bad">{b}</span>}</Link>))}</div>
+          <Link key={h} href={base + h} className="card !p-4 flex items-center gap-3 active:translate-y-0.5 relative" data-testid={`more-${h.slice(1)}`}><span className="h-12 w-12 rounded-xl bg-primary-100 text-primary grid place-items-center"><Icon name={i} size={26} /></span><span className="font-display text-lg text-secondary">{l}</span>{b && <span className="absolute top-2 right-2 chip chip-bad">{b}</span>}</Link>))}</div>
         <div className="grid grid-cols-2 gap-3"><Link href="/igra" className="btn btn-ghost">Sve kampanje</Link>{admin && <Link href="/admin" className="btn btn-purple">Administracija</Link>}</div>
         <Expandable title={<span className="flex items-center gap-2"><Icon name="book" size={20} />Kako se igra</span>} defaultOpen>
           <div className="space-y-2 text-sm font-semibold text-ink/90">

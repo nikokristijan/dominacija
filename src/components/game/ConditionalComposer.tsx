@@ -50,7 +50,7 @@ export function ConditionalComposer({ territoryId, onDone }: { territoryId?: str
 
   return (
     <div className="space-y-4" data-testid="conditional-composer">
-      <div className="rounded-2xl bg-primary-100 p-3 text-sm font-bold text-secondary">Uvjetne naredbe izvršava server automatski u trenutku razrješenja, ako se okidač dogodi. Najviše {v.config.campaign.maxConditionalOrdersPerRound} po rundi.</div>
+      <div className="rounded-xl bg-primary-100 p-3 text-sm font-medium text-secondary">Uvjetne naredbe izvršava server automatski u trenutku razrješenja, ako se okidač dogodi. Najviše {v.config.campaign.maxConditionalOrdersPerRound} po rundi.</div>
       <Field label="AKO (okidač)"><select className="input" value={trig} onChange={(e) => setTrig(e.target.value as TriggerType)} data-testid="cond-trigger">{(Object.keys(TRIGGER_LABEL) as TriggerType[]).filter((t) => t !== 'ally_loses_territory' || allies.length > 0).map((t) => <option key={t} value={t}>{TRIGGER_LABEL[t]}</option>)}</select></Field>
       {trig === 'territory_attacked' && <Field label="Koji teritorij"><select className="input" value={trigT} onChange={(e) => setTrigT(e.target.value)}>{mine.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>}
       {trig === 'attacked_by_player' && <Field label="Koji igrač"><select className="input" value={trigP} onChange={(e) => setTrigP(e.target.value)}>{others.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
@@ -65,7 +65,7 @@ export function ConditionalComposer({ territoryId, onDone }: { territoryId?: str
       </>)}
       {actNow === 'emergency_recruit' && (<div className="grid grid-cols-2 gap-3"><Field label="Postrojba"><select className="input" value={unit} onChange={(e) => setUnit(e.target.value as typeof unit)}>{UNIT_TYPES.map((u) => <option key={u} value={u}>{v.config.units[u].name}</option>)}</select></Field><Field label="Broj"><Counter value={count} min={1} max={30} onChange={setCount} /></Field></div>)}
       <div><div className="label mb-1">Potrebni resursi (zadržavaju se samo pri izvršenju)</div>
-        <div className="grid grid-cols-2 gap-1.5">{RESOURCE_TYPES.slice(0, 4).map((r) => <div key={r} className="flex items-center justify-between rounded-xl bg-primary-100/50 px-2 py-1"><span className="flex items-center gap-1 text-sm font-extrabold"><ResourceIcon name={r} size={20} />{RES_LOWER[r]}</span><Counter value={req[r] ?? 0} max={500} step={5} onChange={(n) => setReq({ ...req, [r]: n })} /></div>)}</div></div>
+        <div className="grid grid-cols-2 gap-1.5">{RESOURCE_TYPES.slice(0, 4).map((r) => <div key={r} className="flex items-center justify-between rounded-xl bg-primary-100/50 px-2 py-1"><span className="flex items-center gap-1 text-sm font-semibold"><ResourceIcon name={r} size={20} />{RES_LOWER[r]}</span><Counter value={req[r] ?? 0} max={500} step={5} onChange={(n) => setReq({ ...req, [r]: n })} /></div>)}</div></div>
       <div className="grid grid-cols-2 gap-3"><Field label="Prioritet (1 = prvi)"><Counter value={prio} min={1} max={5} onChange={setPrio} /></Field><Field label="Vrijedi do runde"><Counter value={exp} min={v.round} max={v.totalRounds} onChange={setExp} /></Field></div>
       <button className="btn btn-yellow w-full" disabled={busy} onClick={submit} data-testid="cond-submit">Spremi uvjetnu naredbu</button>
     </div>

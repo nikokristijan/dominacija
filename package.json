@@ -10,7 +10,10 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "simulate": "tsx scripts/simulate.ts",
-    "assets": "tsx scripts/export-assets.tsx"
+    "assets": "tsx scripts/export-assets.tsx",
+    "predev": "node scripts/clean-if-stale.mjs",
+    "prebuild": "node scripts/clean-if-stale.mjs",
+    "fresh": "node scripts/clean-if-stale.mjs --force && next dev"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

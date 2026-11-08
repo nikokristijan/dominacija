@@ -92,8 +92,8 @@ export function OrderComposer({ type, initial, editingId, onDone, prefillTerrito
         <Field label="Teritorij"><select className="input" value={p.territoryId} onChange={(e) => set({ territoryId: e.target.value })}>{terrOpts(mine)}</select></Field>
         <Field label="Vrsta postrojbe">
           <div className="grid grid-cols-3 gap-2">{UNIT_TYPES.map((u) => (
-            <button key={u} type="button" onClick={() => set({ unit: u })} className={`rounded-2xl border-2 p-2 flex flex-col items-center ${p.unit === u ? 'border-primary bg-primary-100' : 'border-line bg-white'}`}>
-              <UnitIcon unit={u} size={46} /><span className="text-xs font-extrabold">{v.config.units[u].name}</span><span className="text-[10px] text-muted">{v.config.units[u].cost.gold}z {v.config.units[u].cost.iron ? `${v.config.units[u].cost.iron}ž` : ''}</span>
+            <button key={u} type="button" onClick={() => set({ unit: u })} className={`rounded-xl border p-2 flex flex-col items-center ${p.unit === u ? 'border-primary bg-primary-100' : 'border-line bg-white'}`}>
+              <UnitIcon unit={u} size={46} /><span className="text-xs font-semibold">{v.config.units[u].name}</span><span className="text-[10px] text-muted">{v.config.units[u].cost.gold}z {v.config.units[u].cost.iron ? `${v.config.units[u].cost.iron}ž` : ''}</span>
             </button>))}</div>
         </Field>
         <Field label="Broj postrojbi"><Counter value={p.count} min={1} max={60} onChange={(n) => set({ count: n })} /></Field>
@@ -114,8 +114,8 @@ export function OrderComposer({ type, initial, editingId, onDone, prefillTerrito
           return (<Field label="Zgrada"><div className="grid grid-cols-3 gap-2">{(['farm', 'mine', 'city', 'fortress', 'barracks', 'market', 'research_center'] as const).map((b) => {
             const bd = v.config.buildings[b];
             const ok = !!t && bd.allowedTerrain.includes(t.terrain) && (!t.building || t.building === b);
-            return (<button key={b} type="button" disabled={!ok} onClick={() => set({ building: b })} className={`rounded-2xl border-2 p-1.5 flex flex-col items-center ${p.building === b ? 'border-primary bg-primary-100' : 'border-line bg-white'} ${ok ? '' : 'opacity-40'}`}>
-              <Building type={b} size={52} faction={v.me.faction} /><span className="text-[11px] font-extrabold text-center leading-tight">{bd.name}</span>
+            return (<button key={b} type="button" disabled={!ok} onClick={() => set({ building: b })} className={`rounded-xl border p-1.5 flex flex-col items-center ${p.building === b ? 'border-primary bg-primary-100' : 'border-line bg-white'} ${ok ? '' : 'opacity-40'}`}>
+              <Building type={b} size={52} faction={v.me.faction} /><span className="text-[11px] font-semibold text-center leading-tight">{bd.name}</span>
               {t?.building === b && <span className="chip chip-good mt-0.5">Nadogradi</span>}
             </button>);
           })}</div></Field>);
@@ -153,7 +153,7 @@ export function OrderComposer({ type, initial, editingId, onDone, prefillTerrito
           <div key={cat}><div className="label mb-1" style={{ color: TECH_CATEGORIES[cat].color }}>{TECH_CATEGORIES[cat].name}</div>
             <div className="grid gap-1.5">{TECHS.filter((t) => t.category === cat).map((t) => {
               const have = v.me.techs.includes(t.id), avail = t.requires.every((r) => v.me.techs.includes(r));
-              return <button key={t.id} type="button" disabled={have || !avail} onClick={() => set({ techId: t.id })} className={`text-left rounded-2xl border-2 p-2.5 ${p.techId === t.id ? 'border-primary bg-primary-100' : 'border-line bg-white'} ${have || !avail ? 'opacity-45' : ''}`}>
+              return <button key={t.id} type="button" disabled={have || !avail} onClick={() => set({ techId: t.id })} className={`text-left rounded-xl border p-2.5 ${p.techId === t.id ? 'border-primary bg-primary-100' : 'border-line bg-white'} ${have || !avail ? 'opacity-45' : ''}`}>
                 <div className="flex justify-between items-center"><b>{t.name}</b>{have && <span className="chip chip-good">Istraženo</span>}</div><div className="text-xs text-muted">{t.description}</div></button>;
             })}</div></div>))}
         </div>
@@ -180,7 +180,7 @@ export function OrderComposer({ type, initial, editingId, onDone, prefillTerrito
 
 function ResInputs({ value, onChange, label }: { value: Partial<Resources>; onChange: (r: Partial<Resources>) => void; label: string }) {
   return (<div><div className="label mb-1">{label}</div><div className="grid grid-cols-1 gap-1.5">{RESOURCE_TYPES.map((r) => (
-    <div key={r} className="flex items-center justify-between rounded-xl bg-primary-100/50 px-2 py-1"><span className="flex items-center gap-1.5 font-extrabold text-sm"><ResourceIcon name={r} size={22} />{RES_LOWER[r]}</span><Counter value={value[r] ?? 0} max={999} step={5} onChange={(n) => onChange({ ...value, [r]: n })} /></div>))}</div></div>);
+    <div key={r} className="flex items-center justify-between rounded-xl bg-primary-100/50 px-2 py-1"><span className="flex items-center gap-1.5 font-semibold text-sm"><ResourceIcon name={r} size={22} />{RES_LOWER[r]}</span><Counter value={value[r] ?? 0} max={999} step={5} onChange={(n) => onChange({ ...value, [r]: n })} /></div>))}</div></div>);
 }
 
 function DiplomacyForm({ v, p, set, mine, others, editingId }: { v: PlayerView; p: any; set: (x: Record<string, unknown>) => void; mine: any[]; others: any[]; editingId?: string }) {
@@ -209,7 +209,7 @@ function DiplomacyForm({ v, p, set, mine, others, editingId }: { v: PlayerView; 
       </>)}
       {p.kind === 'joint_attack' && <Field label="Cilj zajedničkog napada"><select className="input" value={terms.attackTarget ?? ''} onChange={(e) => setTerms({ attackTarget: e.target.value })}><option value="">— odaberi —</option>{Object.values(v.territories).filter((t) => t.owner !== v.me.id && t.owner !== p.targetPlayerId && t.terrain !== 'water').map((t) => <option key={t.id} value={t.id}>{t.name}{t.owner ? ` (${v.players[t.owner]?.name})` : ''}</option>)}</select></Field>}
       {['alliance', 'nap', 'trade', 'support', 'swap', 'joint_attack'].includes(p.kind) && (
-        <label className="flex items-center gap-3 rounded-2xl bg-primary-100/60 p-3 font-extrabold"><input type="checkbox" className="h-5 w-5 accent-[#5B3DF6]" checked={!!p.secret} onChange={(e) => set({ secret: e.target.checked })} /><span>Tajni dogovor <span className="block text-xs font-semibold text-muted">Vidljiv samo vama dvoma.</span></span></label>
+        <label className="flex items-center gap-3 rounded-xl bg-primary-100/60 p-3 font-semibold"><input type="checkbox" className="h-5 w-5 accent-[#5B3DF6]" checked={!!p.secret} onChange={(e) => set({ secret: e.target.checked })} /><span>Tajni dogovor <span className="block text-xs font-semibold text-muted">Vidljiv samo vama dvoma.</span></span></label>
       )}
     </>)}
   </>);

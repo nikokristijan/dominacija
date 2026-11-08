@@ -21,7 +21,7 @@ export function NotificationsScreen() {
         <div className="flex items-center justify-between"><h1 className="text-2xl text-secondary">Obavijesti</h1>{list?.some((n) => !n.readAt) && <button className="chip" onClick={readAll}>Označi sve pročitanim</button>}</div>
         {list === null && <div className="card shimmer h-20" />}
         {list?.length === 0 && <Empty title="Nema obavijesti" text="Ovdje stižu ponude, napadi i izvještaji." mood="happy" />}
-        {list?.map((n) => <div key={n.id} className={`card-flat flex items-start gap-3 ${n.readAt ? 'opacity-70' : 'border-primary/50 bg-primary-100/40'}`}><span className="h-10 w-10 shrink-0 rounded-2xl bg-white border-2 border-line grid place-items-center text-primary"><Icon name={ICON[n.kind] ?? 'bell'} size={22} /></span><div className="flex-1 min-w-0"><div className="font-extrabold">{n.title}</div><div className="text-sm text-muted font-semibold">{n.body}</div><div className="text-xs text-muted">{timeAgo(n.createdAt)}</div></div>{!n.readAt && <span className="h-2.5 w-2.5 rounded-full bg-bad mt-2" />}</div>)}
+        {list?.map((n) => <div key={n.id} className={`card-flat flex items-start gap-3 ${n.readAt ? 'opacity-70' : 'border-primary/50 bg-primary-100/40'}`}><span className="h-10 w-10 shrink-0 rounded-xl bg-white border border-line grid place-items-center text-primary"><Icon name={ICON[n.kind] ?? 'bell'} size={22} /></span><div className="flex-1 min-w-0"><div className="font-semibold">{n.title}</div><div className="text-sm text-muted font-semibold">{n.body}</div><div className="text-xs text-muted">{timeAgo(n.createdAt)}</div></div>{!n.readAt && <span className="h-2.5 w-2.5 rounded-full bg-bad mt-2" />}</div>)}
       </div>
     </div>
   );

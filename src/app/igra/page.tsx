@@ -40,14 +40,14 @@ export default function Hub() {
         </div>
       </header>
       <div className="max-w-2xl mx-auto px-5 pt-5 space-y-3">
-        <Link href="/k/tutorial/karta" className="flex items-center gap-4 rounded-2xl border border-primary/30 bg-primary-100 px-5 py-4" data-testid="tutorial-card">
+        <Link href="/k/tutorial/karta" className="flex items-center gap-4 rounded-xl border border-primary/30 bg-primary-100 px-5 py-4" data-testid="tutorial-card">
           <Icon name="play" size={26} className="text-primary shrink-0" /><div className="flex-1"><div className="font-semibold text-primary">Prvi put? Pokreni vodič</div><div className="text-sm text-neutral-600">Probna bitka kroz sve funkcije igre, oko 8 minuta. Ništa ne utječe na prave kampanje.</div></div><Icon name="chevron" className="text-primary" />
         </Link>
         <div className="grid grid-cols-2 gap-3">
           <button className="btn btn-yellow" onClick={() => setSheet('create')} data-testid="new-campaign"><Icon name="plus" /> Nova kampanja</button>
           <button className="btn btn-purple" onClick={() => setSheet('join')} data-testid="join-campaign"><Icon name="users" /> Pridruži se</button>
         </div>
-        {err && <p role="alert" className="card-flat bg-red-50 text-red-800 font-bold">{err}</p>}
+        {err && <p role="alert" className="card-flat bg-red-50 text-red-800 font-medium">{err}</p>}
         <h2 className="text-[15px] pt-3">Tvoje kampanje</h2>
         {rows === null && <div className="card shimmer h-24" />}
         {rows?.length === 0 && <Empty title="Još nemaš kampanju" text="Stvori privatnu kampanju za prijatelje ili uđi pozivnim kodom. Za brzo isprobavanje otvori simulaciju s botovima." />}
@@ -71,8 +71,8 @@ export default function Hub() {
 
 function FactionPick({ value, onChange }: { value: FactionId | null; onChange: (f: FactionId | null) => void }) {
   return (<div className="grid grid-cols-4 gap-2">
-    <button type="button" onClick={() => onChange(null)} className={`rounded-2xl border-2 p-1.5 text-xs font-extrabold ${value === null ? 'border-primary bg-primary-100' : 'border-line'}`}>Nasumično</button>
-    {FACTION_IDS.map((f) => <button key={f} type="button" aria-label={FACTIONS[f].name} onClick={() => onChange(f)} className={`rounded-2xl border-2 p-1 grid place-items-center ${value === f ? 'border-primary bg-primary-100' : 'border-line'}`}><FactionBadge faction={f} size={36} /></button>)}
+    <button type="button" onClick={() => onChange(null)} className={`rounded-xl border p-1.5 text-xs font-semibold ${value === null ? 'border-primary bg-primary-100' : 'border-line'}`}>Nasumično</button>
+    {FACTION_IDS.map((f) => <button key={f} type="button" aria-label={FACTIONS[f].name} onClick={() => onChange(f)} className={`rounded-xl border p-1 grid place-items-center ${value === f ? 'border-primary bg-primary-100' : 'border-line'}`}><FactionBadge faction={f} size={36} /></button>)}
   </div>);
 }
 
@@ -111,14 +111,14 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
           </div>
           <p className="text-xs text-muted">Vremenska zona: {tz}. Svaki dan: planiranje → zaključavanje → istovremeno razrješenje. 7 dana.</p>
         </>) : (<>
-          <div className="rounded-2xl bg-yellow-50 border-2 border-yellow-200 p-3 text-sm font-bold text-yellow-900">Razvojna simulacija: protiv tebe igraju botovi (jasno označeni), a runde su ubrzane. Služi za testiranje — ne koristi se za pravu kampanju.</div>
+          <div className="rounded-xl bg-neutral-50 border border-line p-3 text-sm font-medium text-neutral-700">Razvojna simulacija: protiv tebe igraju botovi (jasno označeni), a runde su ubrzane. Služi za testiranje — ne koristi se za pravu kampanju.</div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Broj botova"><select className="input" value={bots} onChange={(e) => setBots(+e.target.value)}>{[3, 4, 5, 6, 7].map((n) => <option key={n}>{n}</option>)}</select></Field>
             <Field label="Planiranje (sekundi)"><select className="input" value={secs} onChange={(e) => setSecs(+e.target.value)}>{[30, 60, 90, 180, 600].map((n) => <option key={n}>{n}</option>)}</select></Field>
           </div>
         </>)}
         <Field label="Tvoje kraljevstvo"><FactionPick value={faction} onChange={setFaction} /></Field>
-        {localErr && <p role="alert" className="rounded-xl bg-red-50 border-2 border-red-200 p-2.5 text-sm text-red-800 font-bold">{localErr}</p>}
+        {localErr && <p role="alert" className="rounded-xl bg-red-50 border border-red-200 p-2.5 text-sm text-red-800 font-medium">{localErr}</p>}
         <button className="btn btn-yellow w-full" disabled={busy} onClick={submit} data-testid="create-submit">{busy ? 'Stvaram…' : mode === 'dev' ? 'Pokreni simulaciju' : 'Stvori kampanju'}</button>
       </div>
     </Sheet>
@@ -134,7 +134,7 @@ function JoinSheet({ open, onClose, onJoined }: { open: boolean; onClose: () => 
         <h2 className="text-2xl">Pridruži se kampanji</h2>
         <Field label="Pozivni kod"><input className="input text-center text-2xl tracking-[0.3em] uppercase font-display" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="ABC123" data-testid="join-code" /></Field>
         <Field label="Željeno kraljevstvo"><FactionPick value={faction} onChange={setFaction} /></Field>
-        {err && <p role="alert" className="rounded-xl bg-red-50 border-2 border-red-200 p-2.5 text-sm text-red-800 font-bold">{err}</p>}
+        {err && <p role="alert" className="rounded-xl bg-red-50 border border-red-200 p-2.5 text-sm text-red-800 font-medium">{err}</p>}
         <button className="btn btn-purple w-full" disabled={busy || code.length < 4} onClick={go} data-testid="join-submit">Uđi u kampanju</button>
       </div>
     </Sheet>
