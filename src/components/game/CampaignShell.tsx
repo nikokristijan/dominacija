@@ -14,6 +14,8 @@ import { GameProvider, useGame } from './GameProvider';
 import { ResPill } from './common';
 import { Lobby } from '@/components/screens/Lobby';
 import { HelpSheet } from './HelpSheet';
+import { MorningEdition } from './MorningEdition';
+import { AnimatePresence } from 'framer-motion';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { installTutorialApi, uninstallTutorialApi } from '@/components/tutorial/localApi';
 
@@ -36,6 +38,18 @@ export function CampaignShell({ id, children }: { id: string; children: React.Re
 function Inner({ id, children }: { id: string; children: React.ReactNode }) {
   const g = useGame();
   const { meta, view, loading, error, toasts } = g;
+  const [edition, setEdition] = useState<number | null>(null);
+  const round = view?.round ?? null; const phase = view?.phase ?? null;
+  useEffect(() => {
+    // Jutarnje izdanje: pri prvom otvaranju nakon razrješenja runde (ne u vodiču; ne pri prvom ulasku u kampanju)
+    if (id === 'tutorial' || round === null || phase !== 'planning') return;
+    const k = `dom_seen_${id}`;
+    try {
+      const seen = localStorage.getItem(k);
+      if (seen === null) { localStorage.setItem(k, String(round)); return; }
+      if (round > Number(seen)) { localStorage.setItem(k, String(round)); if (!localStorage.getItem('dom_no_edition')) setEdition(round - 1); }
+    } catch { /* bez localStorage nema izdanja */ }
+  }, [id, round, phase]);
   if (loading && !meta) return <Splash text="Učitavam kraljevstvo…" />;
   if (error && !meta) return <Splash text={error} error />;
   if (!meta) return null;
@@ -52,6 +66,7 @@ function Inner({ id, children }: { id: string; children: React.ReactNode }) {
       </div>
       <Toasts toasts={toasts} />
       {id === 'tutorial' && <TutorialOverlay />}
+      <AnimatePresence>{edition !== null && <MorningEdition key={edition} round={edition} onClose={() => setEdition(null)} />}</AnimatePresence>
     </div>
   );
 }

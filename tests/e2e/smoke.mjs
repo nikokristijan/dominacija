@@ -7,7 +7,7 @@ const out = process.argv[3] ?? '/tmp';
 const errors = [];
 const log = (...a) => console.log(...a);
 const b = await chromium.launch();
-const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); } catch {} });
 const p = await ctx.newPage();
 p.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 p.on('pageerror', (e) => errors.push('pageerror: ' + e.message));

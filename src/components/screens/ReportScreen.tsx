@@ -9,6 +9,8 @@ import { Expandable, Empty, SectionTitle } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
 import { describeUnits } from '@/engine/util';
 import { signed } from '@/lib/format';
+import { MorningEdition } from '@/components/game/MorningEdition';
+import { AnimatePresence } from 'framer-motion';
 
 const CATS: Array<{ id: ReportCategory[]; title: string }> = [
   { id: ['military'], title: 'Vojni ishodi' }, { id: ['territory'], title: 'Promjene teritorija' }, { id: ['economy', 'research'], title: 'Gospodarstvo i istraživanje' },
@@ -22,6 +24,7 @@ export function ReportScreen() {
   const v = g.view!;
   const rounds = v.reports.map((r) => r.round);
   const [round, setRound] = useState<number | null>(null);
+  const [edition, setEdition] = useState(false);
   const cur = round ?? rounds[rounds.length - 1] ?? null;
   const rep = v.reports.find((r) => r.round === cur);
   const battles = v.battles.filter((b) => b.round === cur);
@@ -33,7 +36,7 @@ export function ReportScreen() {
       <div className="max-w-3xl mx-auto p-3 lg:p-5 space-y-4">
         <div className="scroll-x">{rounds.map((r) => <button key={r} onClick={() => setRound(r)} className={`pill ${cur === r ? 'pill-on' : ''}`}>Dan {r}</button>)}</div>
         <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card">
-          <div className="label">Dnevni izvještaj</div><h1 className="text-3xl">Dan {rep.round}</h1><div className="text-neutral-600">Bodovi: {rep.scoreBefore} → <span className="font-semibold text-primary text-xl">{rep.scoreAfter}</span> ({signed(rep.scoreAfter - rep.scoreBefore)})</div>
+          <div className="flex items-start justify-between gap-3"><div><div className="label">Dnevni izvještaj</div><h1 className="text-3xl">Dan {rep.round}</h1></div><button className="btn btn-ghost btn-sm" onClick={() => setEdition(true)} data-testid="open-edition"><Icon name="report" size={16} />Glasnik</button></div><div className="text-neutral-600">Bodovi: {rep.scoreBefore} → <span className="font-semibold text-primary text-xl">{rep.scoreAfter}</span> ({signed(rep.scoreAfter - rep.scoreBefore)})</div>
         </motion.section>
 
         {battles.length > 0 && (<section className="space-y-2"><SectionTitle icon="sword">Bojna izvješća</SectionTitle>{battles.map((b) => <BattleCard key={b.id} b={b} />)}</section>)}
@@ -55,6 +58,7 @@ export function ReportScreen() {
           <section key={c.title} className="space-y-1.5"><SectionTitle>{c.title}</SectionTitle>{list.map((e) => <div key={e.id} className={`rounded-xl border p-2.5 text-sm font-medium ${SEV[e.severity]}`}>{e.text}</div>)}</section>); })}
         {rep.entries.length === 0 && <div className="card-flat text-muted font-medium text-center">Mirna runda — ništa posebno.</div>}
       </div>
+      <AnimatePresence>{edition && <MorningEdition key={rep.round} round={rep.round} onClose={() => setEdition(false)} />}</AnimatePresence>
     </div>
   );
 }

@@ -67,6 +67,21 @@ export function Dashboard() {
           {v.phase === 'completed' && <Link href={`${base}/rezultati`} className="btn btn-yellow w-full">Pogledaj konačne rezultate</Link>}
         </section>
 
+        {/* Natjecanje: gdje si i koga loviš */}
+        {v.phase !== 'completed' && (() => {
+          const sorted = [...v.ranking].sort((a, b) => b.score - a.score);
+          const i = sorted.findIndex((r) => r.playerId === v.me.id);
+          const you = sorted[i];
+          const above = sorted[i - 1], below = sorted[i + 1];
+          const line = above ? `${v.players[above.playerId].name} je ispred za ${Math.max(1, above.score - you.score)} bod.` : below ? `${v.players[below.playerId].name} te lovi — razlika ${Math.max(0, you.score - below.score)} bod.` : 'Sam si na vrhu.';
+          return (
+            <Link href={`${base}/ljestvica`} className="card flex items-center gap-4" data-testid="rank-strip">
+              <div className="text-3xl font-semibold tabular-nums w-12 text-center">{i + 1}.</div>
+              <div className="flex-1 min-w-0"><div className="font-semibold">{you.score} bodova · {i === 0 ? 'vodiš' : `${i + 1}. od ${sorted.length}`}</div><div className="text-sm text-muted truncate">{line}</div></div>
+              <Icon name="chevron" size={16} className="text-muted" />
+            </Link>);
+        })()}
+
         {/* Upozorenja */}
         {warnings.map((w, i) => { const body2 = <div className={`flex items-center gap-3 rounded-xl border p-3 text-sm font-medium ${w.sev === 'bad' ? 'border-red-200 bg-red-50 text-red-900' : 'border-orange-200 bg-orange-50 text-orange-900'}`}><Icon name="warn" size={20} className="shrink-0" /><span className="flex-1">{w.t}</span>{w.href && <Icon name="chevron" size={16} />}</div>; return w.href ? <Link key={i} href={w.href} className="block">{body2}</Link> : <div key={i}>{body2}</div>; })}
 

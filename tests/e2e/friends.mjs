@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 const base = process.argv[2] ?? 'http://localhost:3100';
 const errors = [];
 const b = await chromium.launch();
-const mk = async () => { const c = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('pageerror: ' + e.message)); return p; };
+const mk = async () => { const c = await b.newContext({ viewport: { width: 1440, height: 900 } }); await c.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); } catch {} }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('pageerror: ' + e.message)); return p; };
 const step = async (n, fn) => { try { await fn(); console.log('OK  ', n); } catch (e) { console.log('FAIL', n, '-', e.message.slice(0, 400)); errors.push(n); } };
 const reg = async (p, user, name) => {
   await p.goto(base + '/prijava?mode=register'); await p.fill('[data-testid=username]', user); await p.fill('[data-testid=displayname]', name); await p.fill('[data-testid=password]', 'lozinka123');
