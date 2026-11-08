@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DiplomaticOffer, OrderInput } from '@/engine/types';
 import { Icon } from '@/components/art/Icons';
 import { FactionBadge } from '@/components/art/Factions';
-import { Penguin } from '@/components/art/Penguin';
 import { Progress, Seg, Sheet, Empty, SectionTitle } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
 import { OrderComposer } from '@/components/game/OrderComposer';
@@ -30,7 +29,7 @@ export function DiplomacyScreen() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="diplomacy-screen">
       <div className="max-w-3xl mx-auto p-3 lg:p-5 space-y-3">
-        <header className="flex items-center gap-3"><Penguin mood={incoming.length ? 'surprised' : 'happy'} size={64} /><div className="flex-1"><h1 className="text-2xl text-secondary">Diplomacija</h1><p className="text-sm text-muted font-bold">Savezi, ugovori i tajni pregovori. Izdaja je uvijek moguća — ali se pamti.</p></div></header>
+        <header className="flex items-center gap-3"><div className="flex-1"><h1 className="text-2xl ">Diplomacija</h1><p className="text-sm text-muted font-bold">Savezi, ugovori i tajni pregovori. Izdaja je uvijek moguća — ali se pamti.</p></div></header>
         <Seg value={tab} onChange={setTab} options={[{ value: 'neg', label: 'Pregovori' }, { value: 'allies', label: 'Savezi' }, { value: 'treaties', label: `Ugovori${incoming.length ? ` (${incoming.length})` : ''}` }]} />
 
         {tab === 'allies' && (<>
@@ -38,7 +37,7 @@ export function DiplomacyScreen() {
           <div className="space-y-2">{others.map((p) => { const rel = REL[p.relation]; return (
             <div key={p.id} className="card-flat flex items-center gap-3" data-testid={`player-${p.id}`}>
               <FactionBadge faction={p.faction} size={44} />
-              <div className="flex-1 min-w-0"><div className="font-display text-lg text-secondary truncate">{p.name} {p.isBot && <span className="chip chip-yellow">bot</span>}</div>
+              <div className="flex-1 min-w-0"><div className="font-semibold truncate">{p.name} {p.isBot && <span className="chip chip-yellow">bot</span>}</div>
                 <div className="flex flex-wrap gap-1.5 mt-0.5"><span className={`chip ${rel.c}`}>{rel.t}</span><span className="chip">{p.score} bod.</span><span className="chip">{p.territoryCount} teritorija</span>{p.status === 'resistance' && <span className="chip chip-bad">Otpor</span>}</div>
                 <div className="mt-1.5 flex items-center gap-2"><span className="text-[11px] font-extrabold text-muted w-12">Ugled</span><Progress className="flex-1 !h-2" value={p.reputation.score} color={p.reputation.score < 35 ? 'bg-bad' : p.reputation.score < 55 ? 'bg-warn' : 'bg-good'} /><span className="text-xs font-black w-7 text-right">{Math.round(p.reputation.score)}</span></div></div>
               <div className="flex flex-col gap-1.5"><button className="btn btn-ghost btn-sm" onClick={() => { setThread(p.id); setTab('neg'); }} aria-label="Poruka"><Icon name="send" size={16} /></button>{planning && <button className="btn btn-purple btn-sm" onClick={() => newOffer(false, p.id)} data-testid={`offer-${p.id}`}>Ponuda</button>}</div>
@@ -64,7 +63,7 @@ export function DiplomacyScreen() {
         {tab === 'neg' && <Messages thread={thread} setThread={setThread} others={others} />}
       </div>
       <Sheet open={!!composer} onClose={() => setComposer(null)} title="Diplomatska ponuda" tall>
-        {composer && <><h2 className="text-2xl text-secondary mb-3">Diplomatska misija</h2><OrderComposer type="diplomacy" initial={composer.order} onDone={() => setComposer(null)} /></>}
+        {composer && <><h2 className="text-2xl  mb-3">Diplomatska misija</h2><OrderComposer type="diplomacy" initial={composer.order} onDone={() => setComposer(null)} /></>}
       </Sheet>
     </div>
   );

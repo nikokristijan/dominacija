@@ -1,25 +1,25 @@
 import Link from 'next/link';
 import { currentUser } from '@/server/auth';
-import { Landscape } from '@/components/Landscape';
+import { HeroMap } from '@/components/HeroMap';
 import { Logo } from '@/components/Logo';
-import { Penguin } from '@/components/art/Penguin';
 
 export const dynamic = 'force-dynamic';
 export default async function Welcome() {
   const user = await currentUser();
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-kingdom flex flex-col items-center text-white">
-      <Landscape className="absolute inset-x-0 bottom-0 h-[78%] w-full" />
-      <div className="relative z-10 flex flex-col items-center pt-[calc(2rem+var(--safe-t))] px-6 w-full max-w-md flex-1">
-        <Logo />
-        <div className="bob mt-2 drop-shadow-[0_10px_0_rgba(46,26,143,0.25)]"><Penguin mood="confident" size={210} /></div>
-        <p className="mt-1 text-center font-extrabold text-lg text-white drop-shadow">7 dana. Jedno kraljevstvo. Pametni pobjeđuju.</p>
-        <div className="mt-auto w-full pb-[calc(1.5rem+var(--safe-b))] pt-6 space-y-3">
-          <Link href={user ? '/igra' : '/prijava?mode=register'} className="btn btn-yellow w-full text-xl min-h-14" data-testid="start-game">{user ? 'Nastavi igru' : 'Započni igru'}</Link>
-          {!user && <Link href="/prijava" className="btn btn-ghost w-full" data-testid="login-link">Prijava</Link>}
-          <p className="text-center text-xs text-white/80 font-bold">Asinkrona strategija za 4–8 igrača · Radi u pregledniku, bez instalacije</p>
+    <main className="min-h-dvh bg-white flex flex-col">
+      <header className="px-6 lg:px-10 py-5 flex items-center justify-between"><Logo />{!user && <Link href="/prijava" className="text-sm font-semibold text-neutral-600" data-testid="login-link">Prijava</Link>}</header>
+      <section className="flex-1 flex flex-col lg:flex-row items-center lg:gap-6 px-6 lg:px-10 max-w-7xl w-full mx-auto">
+        <div className="lg:w-[34rem] pt-6 lg:pt-0 text-center lg:text-left shrink-0">
+          <h1 className="text-[2.6rem] lg:text-6xl leading-[1.04] font-semibold tracking-tight">Sedam dana.<br />Jedno kraljevstvo.</h1>
+          <p className="mt-4 text-lg text-neutral-500 max-w-md mx-auto lg:mx-0">Asinkrona strategija za 4–8 igrača. Planiraj, pregovaraj, špijuniraj — sve naredbe izvršavaju se istovremeno. Pobjeđuje onaj tko misli, ne onaj tko klika.</p>
+          <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+            <Link href={user ? '/igra' : '/prijava?mode=register'} className="btn btn-yellow min-h-12 px-8 text-base" data-testid="start-game">{user ? 'Nastavi igru' : 'Započni igru'}</Link>
+            <Link href="/k/tutorial/karta" className="btn btn-ghost min-h-12 px-8 text-base" data-testid="tutorial-link">Nauči igrati (vodič)</Link>
+          </div>
         </div>
-      </div>
+        <div className="relative w-full flex-1 min-h-[22rem] lg:min-h-[34rem] lg:h-[calc(100dvh-8rem)]"><HeroMap className="absolute inset-0" /></div>
+      </section>
     </main>
   );
 }

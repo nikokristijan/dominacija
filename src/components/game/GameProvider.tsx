@@ -11,6 +11,7 @@ interface Ctx {
   refresh: () => Promise<void>; act: <T = any>(path: string, body: unknown, opts?: { quiet?: boolean; successMsg?: string }) => Promise<T>;
   selected: string | null; select: (id: string | null) => void; toast: (text: string, kind?: Toast['kind']) => void; toasts: Toast[];
   now: number; mood: Mood; remainingMs: number | null;
+  tourTargets: string[]; setTourTargets: (ids: string[]) => void;
 }
 const C = createContext<Ctx | null>(null);
 export const useGame = () => { const c = useContext(C); if (!c) throw new Error('GameProvider nedostaje'); return c; };
@@ -23,6 +24,7 @@ export function GameProvider({ id, children }: { id: string; children: React.Rea
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [tourTargets, setTourTargets] = useState<string[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const skew = useRef(0);
   const busy = useRef(false);
@@ -78,6 +80,6 @@ export function GameProvider({ id, children }: { id: string; children: React.Rea
     return view.me.ready ? 'confident' : 'thinking';
   }, [view]);
 
-  const value: Ctx = { id, meta, view, unread, loading, error, refresh, act, selected, select: setSelected, toast, toasts, now, mood, remainingMs };
+  const value: Ctx = { id, meta, view, unread, loading, error, refresh, act, selected, select: setSelected, toast, toasts, now, mood, remainingMs, tourTargets, setTourTargets };
   return <C.Provider value={value}>{children}</C.Provider>;
 }

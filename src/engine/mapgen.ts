@@ -1,12 +1,10 @@
 /** Generator svijeta: heksagonalna karta s ~110 teritorija i poštenim početnim pozicijama. */
 import type { GameConfig } from './config';
 import { createRng, hashString, type Rng } from './rng';
-import { neighborOffsets, offsetDistance, tid, toAxial, parseTid } from './hex';
+import { hexCenter, neighborOffsets, offsetDistance, tid, toAxial, parseTid } from './hex';
 import { REGION_NAMES, territoryName } from './names';
 import type { GameMap, Region, Territory, TerrainType, TerritoryId } from './types';
 
-/** 8 početnih mjesta raspoređenih po prstenu karte 11×10 (col,row). */
-const SLOTS: Array<[number, number]> = [[2, 2], [5, 1], [8, 2], [9, 5], [8, 8], [5, 8], [2, 8], [1, 5]];
 const REGION_COLORS = ['#A78BFA', '#FBBF24', '#34D399', '#38BDF8', '#FB923C', '#F472B6', '#94A3B8', '#4ADE80'];
 
 function valueNoise(rng: Rng, w: number, h: number, cell: number): (c: number, r: number) => number {
@@ -22,13 +20,7 @@ function valueNoise(rng: Rng, w: number, h: number, cell: number): (c: number, r
   };
 }
 
-export function capitalSlots(playerCount: number): Array<[number, number]> {
-  const out: Array<[number, number]> = [];
-  for (let i = 0; i < playerCount; i++) out.push(SLOTS[Math.floor((i * 8) / playerCount) % 8]);
-  return out;
-}
-
-export function generateMap(seed: string, playerCount: number, cfg: GameConfig): { map: GameMap; capitals: TerritoryId[]; starters: Record<TerritoryId, TerritoryId[]> } {
+function generateMapOnce(seed: string, playerCount: number, cfg: GameConfig): { map: GameMap; capitals: TerritoryId[]; starters: Record<TerritoryId, TerritoryId[]> } {
   const W = cfg.campaign.mapWidth, H = cfg.campaign.mapHeight;
   const rng = createRng(`${seed}:map`);
   const elev = valueNoise(createRng(`${seed}:e`), W, H, 3.2);
@@ -54,13 +46,50 @@ export function generateMap(seed: string, playerCount: number, cfg: GameConfig):
       order.push(id);
     }
   }
-  const nb = (id: TerritoryId): TerritoryId[] => {
-    const t = terr[id];
-    return neighborOffsets(t.col, t.row, W, H).map((o) => tid(o.col, o.row));
+  // ── Organski oblik otoka: rezultat = udaljenost od središta + šum; zadržavamo `target` najboljih ćelija ──
+  const shapeN1 = valueNoise(createRng(`${seed}:s1`), W, H, 4.2), shapeN2 = valueNoise(createRng(`${seed}:s2`), W, H, 2.2);
+  const ext = { x: hexCenter(W, 0, 1).x / 2, y: hexCenter(0, H, 1).y / 2 };
+  const score = (col: number, row: number) => {
+    const c = hexCenter(col, row, 1);
+    const dx = (c.x - ext.x) / ext.x, dy = (c.y - ext.y) / ext.y;
+    return Math.sqrt(dx * dx + dy * dy) + (shapeN1(col, row) - 0.5) * 0.85 + (shapeN2(col, row) - 0.5) * 0.4;
   };
-  const slots = capitalSlots(playerCount);
-  const capitals = slots.map(([c, r]) => tid(c, r));
-  const center = { col: (W - 1) / 2, row: (H - 1) / 2 };
+  const target = Math.min(order.length, cfg.campaign.territoryTarget);
+  const keep = new Set(order.slice().sort((a, b) => score(terr[a].col, terr[a].row) - score(terr[b].col, terr[b].row) || a.localeCompare(b)).slice(0, target));
+  const nbAll = (id: TerritoryId): TerritoryId[] => { const t = terr[id]; return neighborOffsets(t.col, t.row, W, H).map((o) => tid(o.col, o.row)); };
+  // Samo najveća povezana cjelina ostaje
+  { const seen = new Set<TerritoryId>(); let best: TerritoryId[] = [];
+    for (const id of keep) { if (seen.has(id)) continue; const comp = [id]; seen.add(id); const st = [id];
+      while (st.length) { const cur = st.pop()!; for (const n of nbAll(cur)) if (keep.has(n) && !seen.has(n)) { seen.add(n); comp.push(n); st.push(n); } }
+      if (comp.length > best.length) best = comp; }
+    for (const id of [...keep]) if (!best.includes(id)) keep.delete(id); }
+  for (const id of [...order]) if (!keep.has(id)) delete terr[id];
+  order.splice(0, order.length, ...order.filter((id) => keep.has(id)));
+  const nb = (id: TerritoryId): TerritoryId[] => nbAll(id).filter((n) => !!terr[n]);
+
+  // ── Prijestolnice: ravnomjerno po kutovima oko težišta otoka, samo u „unutarnjim” ćelijama ──
+  const px = (id: TerritoryId) => hexCenter(terr[id].col, terr[id].row, 1);
+  const cx = order.reduce((a, id) => a + px(id).x, 0) / order.length, cy = order.reduce((a, id) => a + px(id).y, 0) / order.length;
+  const radius = Math.max(...order.map((id) => Math.hypot(px(id).x - cx, px(id).y - cy)));
+  const ring2Count = (id: TerritoryId) => order.filter((o) => offsetDistance(terr[o], terr[id]) === 2).length;
+  const within3 = (id: TerritoryId) => order.filter((o) => offsetDistance(terr[o], terr[id]) <= 3).length;
+  const interior = order.filter((id) => nb(id).length === 6 && ring2Count(id) >= 10 && within3(id) >= 30);
+  const phase = rng.next() * Math.PI * 2;
+  const capitals: TerritoryId[] = [];
+  for (let i = 0; i < playerCount; i++) {
+    const ang = phase + (i * 2 * Math.PI) / playerCount;
+    const tx = cx + Math.cos(ang) * radius * 0.58, ty = cy + Math.sin(ang) * radius * 0.58;
+    let pick: TerritoryId | undefined;
+    for (const minGap of [6, 5, 4, 3]) {
+      pick = interior.filter((id) => capitals.every((c) => offsetDistance(terr[c], terr[id]) >= minGap))
+        .sort((a, b) => Math.hypot(px(a).x - tx, px(a).y - ty) - Math.hypot(px(b).x - tx, px(b).y - ty) || a.localeCompare(b))[0];
+      if (pick) break;
+    }
+    if (!pick) throw new Error('Generiranje karte nije uspjelo: nema mjesta za prijestolnice.');
+    capitals.push(pick);
+  }
+  const centerId = order.slice().sort((a, b) => Math.hypot(px(a).x - cx, px(a).y - cy) - Math.hypot(px(b).x - cx, px(b).y - cy))[0];
+  const center = { col: terr[centerId].col, row: terr[centerId].row };
   const distCenter = (id: TerritoryId) => offsetDistance(terr[id], center as any);
   const nearCapital = (id: TerritoryId, d: number) => capitals.some((c) => offsetDistance(terr[id], terr[c]) <= d);
 
@@ -176,3 +205,12 @@ export function generateMap(seed: string, playerCount: number, cfg: GameConfig):
 }
 
 export { parseTid, hashString };
+
+/** Deterministički pokušaji: ako neki oblik otoka nema dovoljno mjesta za sve prijestolnice, koristi se sljedeći. */
+export function generateMap(seed: string, playerCount: number, cfg: GameConfig) {
+  let last: unknown;
+  for (let k = 0; k < 40; k++) {
+    try { return generateMapOnce(k === 0 ? seed : `${seed}~${k}`, playerCount, cfg); } catch (e) { last = e; }
+  }
+  throw last;
+}

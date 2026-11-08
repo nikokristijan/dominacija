@@ -3,9 +3,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { UNIT_TYPES } from '@/engine/config';
 import type { BattleReport, ReportCategory, Units } from '@/engine/types';
-import { ClashEffect } from '@/components/art/Effects';
-import { Penguin } from '@/components/art/Penguin';
 import { ResourceIcon } from '@/components/art/Resources';
+import { Icon } from '@/components/art/Icons';
 import { Expandable, Empty, SectionTitle } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
 import { describeUnits } from '@/engine/util';
@@ -33,16 +32,15 @@ export function ReportScreen() {
     <div className="flex-1 overflow-y-auto" data-testid="report-screen">
       <div className="max-w-3xl mx-auto p-3 lg:p-5 space-y-4">
         <div className="scroll-x">{rounds.map((r) => <button key={r} onClick={() => setRound(r)} className={`shrink-0 rounded-2xl px-4 min-h-10 font-extrabold ${cur === r ? 'tab-active' : 'bg-white border-2 border-line text-primary'}`}>Dan {r}</button>)}</div>
-        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="panel-dark p-4 flex items-center gap-3">
-          <Penguin mood={rep.mood} size={96} />
-          <div className="flex-1"><div className="text-xs font-extrabold text-white/70 uppercase">Dnevni izvještaj</div><h1 className="text-3xl">Dan {rep.round}</h1><div className="font-bold">Bodovi: {rep.scoreBefore} → <span className="text-accent font-display text-xl">{rep.scoreAfter}</span> ({signed(rep.scoreAfter - rep.scoreBefore)})</div></div>
+        <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card">
+          <div className="label">Dnevni izvještaj</div><h1 className="text-3xl">Dan {rep.round}</h1><div className="text-neutral-600">Bodovi: {rep.scoreBefore} → <span className="font-semibold text-primary text-xl">{rep.scoreAfter}</span> ({signed(rep.scoreAfter - rep.scoreBefore)})</div>
         </motion.section>
 
         {battles.length > 0 && (<section className="space-y-2"><SectionTitle icon="sword">Bojna izvješća</SectionTitle>{battles.map((b) => <BattleCard key={b.id} b={b} />)}</section>)}
 
         <section className="card space-y-2">
           <SectionTitle icon="coins">Promjena resursa</SectionTitle>
-          <div className="grid grid-cols-5 gap-1.5 text-center">{(['gold', 'food', 'iron', 'wood', 'influence'] as const).map((k) => <div key={k} className="rounded-2xl bg-primary-100/50 py-2"><ResourceIcon name={k} size={26} className="mx-auto" /><div className="font-display font-extrabold">{Math.floor(L.after[k])}</div><div className={`text-xs font-black ${delta(k) < 0 ? 'text-bad' : 'text-good'}`}>{signed(delta(k), 0)}</div></div>)}</div>
+          <div className="grid grid-cols-5 gap-1.5 text-center">{(['gold', 'food', 'iron', 'wood', 'influence'] as const).map((k) => <div key={k} className="rounded-2xl bg-primary-100/50 py-2"><ResourceIcon name={k} size={26} className="mx-auto" /><div className="font-semibold">{Math.floor(L.after[k])}</div><div className={`text-xs font-black ${delta(k) < 0 ? 'text-bad' : 'text-good'}`}>{signed(delta(k), 0)}</div></div>)}</div>
           <Expandable title="Razrada">
             <table className="w-full text-sm"><tbody>
               <Row l="Proizvodnja" r={(['gold', 'food', 'iron', 'wood', 'influence'] as const).map((k) => L.production[k] ? `${k === 'gold' ? 'z' : k[0]}${L.production[k].toFixed(0)}` : '').filter(Boolean).join(' · ')} />
@@ -70,7 +68,7 @@ function BattleCard({ b }: { b: BattleReport }) {
   const good = (mineAtt && won) || (!mineAtt && !won);
   const total = (u: Units) => UNIT_TYPES.reduce((n, k) => n + (u[k] ?? 0), 0);
   return (
-    <Expandable defaultOpen={false} title={<span className="flex items-center gap-2"><ClashEffect size={34} /><span><span className="block font-display text-lg leading-tight">{b.territoryName}</span><span className={`text-xs font-extrabold ${good ? 'text-good' : 'text-bad'}`}>{b.outcome === 'attacker_victory' ? 'Napad uspio' : b.outcome === 'retreat' ? 'Napadač se povukao' : 'Obrana izdržala'}</span></span></span>} badge={<span className={`chip ${good ? 'chip-good' : 'chip-bad'}`}>{good ? 'Pobjeda' : 'Poraz'}</span>}>
+    <Expandable defaultOpen={false} title={<span className="flex items-center gap-2"><Icon name="swords" size={24} stroke={1.6} className="text-neutral-500" /><span><span className="block font-semibold leading-tight">{b.territoryName}</span><span className={`text-xs font-extrabold ${good ? 'text-good' : 'text-bad'}`}>{b.outcome === 'attacker_victory' ? 'Napad uspio' : b.outcome === 'retreat' ? 'Napadač se povukao' : 'Obrana izdržala'}</span></span></span>} badge={<span className={`chip ${good ? 'chip-good' : 'chip-bad'}`}>{good ? 'Pobjeda' : 'Poraz'}</span>}>
       <div className="space-y-3" data-testid="battle-card">
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-2xl bg-red-50 p-2.5"><div className="label !text-red-700">Napadač</div>{b.attackers.map((a, i) => <div key={i} className="font-bold">{v.players[a.playerId]?.name}: {unitsText(a.units)}</div>)}<div className="text-xs text-muted">Snaga {Math.round(b.attackerPower)} · gubici: {unitsText(b.attackerLosses)}</div></div>

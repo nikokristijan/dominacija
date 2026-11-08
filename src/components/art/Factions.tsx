@@ -16,22 +16,6 @@ function Emblem({ id, fill = '#fff', stroke }: { id: string; fill?: string; stro
   }
 }
 
-export function FactionBanner({ faction, size = 56, className = '' }: { faction: FactionId; size?: number; className?: string }) {
-  const f = FACTIONS[faction];
-  const id = `fb-${faction}`;
-  return (
-    <svg viewBox="0 0 64 88" width={size} height={size * 1.375} className={className} role="img" aria-label={f.name} xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={f.light} /><stop offset="0.25" stopColor={f.color} /><stop offset="1" stopColor={f.dark} /></linearGradient></defs>
-      <rect x="4" y="3" width="56" height="8" rx="4" fill="#FFD23F" stroke="#B87400" strokeWidth="2.4" />
-      <circle cx="6" cy="7" r="4.5" fill="#FFD23F" stroke="#B87400" strokeWidth="2.2" /><circle cx="58" cy="7" r="4.5" fill="#FFD23F" stroke="#B87400" strokeWidth="2.2" />
-      <path d="M9 11 H55 V62 L32 80 L9 62Z" fill={`url(#${id})`} stroke={f.dark} strokeWidth="3" strokeLinejoin="round" />
-      <path d="M14 16 H50 V58 L32 72 L14 58Z" fill="none" stroke="#FFD23F" strokeWidth="1.8" opacity="0.85" strokeLinejoin="round" />
-      <g transform="translate(32 40)"><Emblem id={f.emblem} stroke={f.dark} /></g>
-      <path d="M12 14 L12 40" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" opacity="0.35" />
-    </svg>
-  );
-}
-
 /** Mali krug s bojom i amblemom — za oznake na karti i popise igrača. */
 export function FactionBadge({ faction, size = 28 }: { faction: FactionId; size?: number }) {
   const f = FACTIONS[faction];

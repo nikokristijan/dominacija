@@ -120,8 +120,10 @@ export const GAME_CONFIG = {
     maxPlayers: 8,
     days: 7,
     commandPointsPerDay: 10,
-    mapWidth: 11,
-    mapHeight: 10,
+    mapWidth: 15,
+    mapHeight: 13,
+    /** Broj teritorija otoka (organski oblik, ~100–120). */
+    territoryTarget: 118,
     regionCount: 7,
     /** Zadani raspored dana (lokalno vrijeme kampanje). */
     planningStartHour: 8,

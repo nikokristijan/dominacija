@@ -68,7 +68,7 @@ export function applyLossFraction(units: Units, frac: number): { survivors: Unit
 export const terr = (s: GameState, id: TerritoryId): Territory => s.map.territories[id];
 export function neighborIds(s: GameState, id: TerritoryId): TerritoryId[] {
   const t = s.map.territories[id];
-  return neighborOffsets(t.col, t.row, s.map.width, s.map.height).map((o) => tid(o.col, o.row)).filter((n) => s.map.territories[n].terrain !== 'water');
+  return neighborOffsets(t.col, t.row, s.map.width, s.map.height).map((o) => tid(o.col, o.row)).filter((n) => !!s.map.territories[n] && s.map.territories[n].terrain !== 'water');
 }
 export const playerTerritories = (s: GameState, pid: PlayerId): Territory[] => s.map.order.map((i) => s.map.territories[i]).filter((t) => t.owner === pid);
 

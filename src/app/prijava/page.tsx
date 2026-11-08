@@ -3,7 +3,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Penguin } from '@/components/art/Penguin';
+import { Logo } from '@/components/Logo';
 import { Seg } from '@/components/ui/kit';
 
 function Form() {
@@ -20,10 +20,10 @@ function Form() {
     } catch (x) { setErr(x instanceof Error ? x.message : 'Greška'); } finally { setBusy(false); }
   };
   return (
-    <main className="min-h-dvh bg-kingdom flex flex-col items-center justify-center px-5 py-8">
-      <div className="bob"><Penguin mood={err ? 'surprised' : 'happy'} size={130} /></div>
-      <form onSubmit={submit} className="card w-full max-w-sm mt-2 space-y-3" data-testid="auth-form">
-        <h1 className="text-2xl text-secondary text-center">{mode === 'login' ? 'Dobrodošao natrag!' : 'Postani kralj!'}</h1>
+    <main className="min-h-dvh bg-white flex flex-col items-center justify-center px-5 py-8">
+      <Logo />
+      <form onSubmit={submit} className="w-full max-w-sm mt-8 space-y-4" data-testid="auth-form">
+        <h1 className="text-2xl text-center">{mode === 'login' ? 'Dobrodošao natrag!' : 'Postani kralj!'}</h1>
         <Seg value={mode} onChange={setMode} options={[{ value: 'login', label: 'Prijava' }, { value: 'register', label: 'Registracija' }]} />
         <label className="block"><span className="label">Korisničko ime</span><input className="input mt-1" autoComplete="username" value={username} onChange={(e) => setU(e.target.value)} required minLength={3} data-testid="username" /></label>
         {mode === 'register' && <label className="block"><span className="label">Ime kralja (prikaz)</span><input className="input mt-1" value={displayName} maxLength={24} onChange={(e) => setD(e.target.value)} placeholder="npr. Marko I." data-testid="displayname" /></label>}
@@ -32,7 +32,7 @@ function Form() {
         <button className="btn btn-yellow w-full" disabled={busy} data-testid="auth-submit">{busy ? 'Trenutak…' : mode === 'login' ? 'Prijavi se' : 'Stvori račun'}</button>
         <p className="text-xs text-muted text-center">{mode === 'register' ? 'Lozinka: barem 8 znakova.' : 'Nemaš račun? Odaberi Registracija.'}</p>
       </form>
-      <Link href="/" className="mt-4 text-white/90 font-bold underline">← Natrag</Link>
+      <Link href="/" className="mt-6 text-sm text-muted font-medium">← Natrag</Link>
     </main>
   );
 }

@@ -2,6 +2,8 @@
 
 Asinkrona višeigračka strategija (4–8 igrača, 7 dana, istovremeno razrješenje naredbi). Mobile‑first PWA, sav sadržaj na hrvatskom.
 
+**Dizajn (v0.2):** ultra‑minimalan bijeli UI + lebdeća, blago izometrijska karta organskog oblika otoka (bez okvira, bez maskote, bez crtanih likova, bez emojija). Svi popupi su kontekstualni: plutajući desni panel na desktopu, povlačivi donji list na mobitelu. **Uvodni vodič** (`/k/tutorial/karta`, dostupan i bez računa) vodi kroz sve funkcije probnom bitkom.
+
 > **Pravilo ovog dokumenta:** funkcija je označena „završeno” samo ako je implementirana **i** testirana. Sve ostalo je izričito navedeno kao ograničenje.
 
 ## Pokretanje
@@ -10,6 +12,7 @@ Asinkrona višeigračka strategija (4–8 igrača, 7 dana, istovremeno razrješe
 npm install
 npm run dev            # http://localhost:3000 — lokalni razvojni način (JSON datoteka .data/dominacija.json)
 npm test               # 82 testa: engine + RLS (PostgreSQL u WASM-u)
+node tests/e2e/tutorial.mjs http://localhost:3100 /tmp/shots [mobile]   # vodič kroz sve korake u pravom pregledniku
 npm run simulate -- 6 demo      # simulacija cijele 7-dnevne kampanje s botovima (~100 ms)
 npm run simulate -- batch       # 20 kampanja, statistika za balans
 npm run assets         # izvoz SVG asseta u public/assets/*
@@ -30,7 +33,7 @@ node tests/e2e/smoke.mjs http://localhost:3100 /tmp/screens
 src/engine/    ČISTI TypeScript, bez UI-ja i baze — može ga koristiti i native klijent
   config.ts      JEDINA konfiguracija balansa (troškovi ZB, jedinice, teren, zgrade, porezi, borba, bodovi…)
   types.ts       tipovi stanja, naredbi, izvješća
-  mapgen.ts      heks karta 11×10 = 110 teritorija, regije, pošteni početni klasteri
+  mapgen.ts      organski otok (~110–118 teritorija; šum + radijalna maska, najveća povezana cjelina), regije, pošteni početni klasteri, prijestolnice po kutovima
   economy.ts     proizvodnja, porezi, održavanje, stabilnost, prognoza (isti kod za UI i razrješenje)
   combat.ts      deterministički bojni račun u fazama (Lanchester), protuteže jedinica, objašnjenje čimbenika
   orders.ts      troškovi, validacija, rezervacija resursa, životni ciklus, uvjetne naredbe, pregled posljedica
@@ -42,7 +45,7 @@ src/engine/    ČISTI TypeScript, bez UI-ja i baze — može ga koristiti i nati
   ai.ts          botovi (samo dev)                            state.ts       stvaranje kampanje
 src/server/    perzistencija, autentikacija, servis kampanja, zod sheme, raspored
 src/app/api/   REST rute (sve ulaze validira zod + engine)
-src/components art/ (SVG), game/ (karta, composer…), screens/ (ekrani), ui/ (kit)
+src/components art/ (linijski glifovi + teren), game/ (HexMap, TerritoryDetails popup, OperationPopup, OrderComposer…), screens/, tutorial/ (vodič + lokalni engine), ui/ (kit)
 supabase/migrations/   0001_schema.sql, 0002_rls.sql
 tests/         engine.test.ts, rls.test.ts, e2e/smoke.mjs
 ```
@@ -64,7 +67,8 @@ zaključavanje (nacrti se odbacuju; neaktivni → automatska obrana) → protuob
 | Faza | Status |
 |---|---|
 | 1 Vizualna osnova | **Završeno**: dizajn sustav, maskota (8 raspoloženja), 120 SVG asseta, navigacija, dashboard, responzivni raspored |
-| 2 Svjetska karta | **Završeno**: SVG heks karta, zoom/pan/pinch, vlasništvo, granice, ceste, zgrade, vojske, magla rata, odabir, bottom sheet |
+| 2 Svjetska karta | **Završeno (redizajn v0.2)**: SVG, organski otok, povišeni 2.5D prikaz s bočnim stranama i sjenom, rijeke/jezera/šume/planine/naselja, granice po odnosu (ti ljubičasto, saveznik plavo, protivnik crveno, neutralno zlatno), zoom/pan/pinch, magla rata |
+| Vodič | **Završeno**: 19 koraka, probna bitka na pravom engineu u pregledniku (lokalni transport, ništa se ne sprema), isticanje elemenata, radi na mobitelu i desktopu |
 | 3 Osnovna igra | **Završeno**: kampanje, pozivni kodovi, lobby, ZB, naredbe, nacrti, dnevne runde, raspored po vremenskoj zoni |
 | 4 Vojska | **Završeno**: 5 strategija, formacije, logistika, opskrba, povlačenje, rezerva, bojna izvješća |
 | 5 Ekonomija | **Završeno**: proizvodnja, zgrade (3 razine), populacija, porezi, stabilnost, pobune s upozorenjem |
@@ -81,7 +85,9 @@ zaključavanje (nacrti se odbacuju; neaktivni → automatska obrana) → protuob
 5. **Multi-napad na isti cilj**: napadači istog igrača ili saveznika borbe se kao koalicija; nepovezane koalicije biju bitku redom po snazi (pobjednik postaje branitelj sljedećoj). Redoslijed adjudikacije po ID‑u teritorija (dokumentirano, ima rubnih slučajeva).
 6. **Balans**: botovi su slabi (malo istražuju/grade), pa statistika simulacija služi za provjeru ispravnosti, ne za konačno ugađanje. Potrebni su testovi igranja s ljudima.
 7. **Pristupačnost**: ciljevi dodira ≥44 px, `prefers-reduced-motion` poštovan, ARIA oznake osnovne; nije rađen potpuni WCAG audit niti čitač zaslona.
-8. Karta nema crtane rijeke/mostove (samo jezera, ceste i zastave); „mostovi” su plan.
+8. Rijeke na karti su dekorativne (od planine do jezera), ne utječu na igru; mostova nema.
+11. Vodič koristi 16 ZB umjesto 10 (da stigneš isprobati sve) i drži stanje samo u memoriji — osvježavanje stranice ga resetira.
+12. Faktorski identitet kraljevstava na karti je suptilan (prsten oko krune) jer se boje teritorija određuju odnosom (ti/saveznik/protivnik/neutralno), po specifikaciji redizajna.
 9. `fileStore.ts` izaziva Turbopack upozorenje o praćenju datoteka (samo dev store).
 10. Servisna radnja `devAction('resolve_all')` zaobilazi rokove — dostupna samo za `devSimulation` kampanje.
 
@@ -89,6 +95,7 @@ zaključavanje (nacrti se odbacuju; neaktivni → automatska obrana) → protuob
 
 - `tests/engine.test.ts` (70): generiranje karte i poštene pozicije, ZB limit, rezervacija resursa, nacrti, validacija, konfigurabilnost troškova, prognoza = stvarno razrješenje, porezi/stabilnost, gradnja/novačenje, glad, pobuna (tek nakon upozorenja), borba (determinizam, teren, tvrđava, protuteže, opsada, zasjeda, opskrba, povlačenje, koalicija, objašnjenja), istovremenost i neovisnost o redoslijedu unosa, sukob pripajanja, uvjetne naredbe (4), diplomacija (savez, izdaja, oporavak ugleda, trgovina, poruke), špijunaža i fog (view ne otkriva tuđe), tehnologija, Otpor (pad glavnog grada, jeftino novačenje, ustanak, povratak), bodovanje, cijela kampanja od 7 dana, neaktivni igrači, događaji, opskrba, pregled naredbe.
 - `tests/rls.test.ts` (12): izolacija naredbi, tajnih ciljeva, resursa, garnizona, poruka; javni pogled teritorija; skriven rastav bodova do kraja; klijent ne može pisati; CHECK ograničenja; idempotentan ključ razrješenja.
+- `tests/e2e/tutorial.mjs` (19 koraka, desktop i mobilni): cijeli vodič kao stvarni korisnik bez prijave — odabir teritorija, novačenje, gradnja, porezi, istraživanje, špijunaža, diplomacija, uvjetna naredba, 6-koračni planer napada, zaključavanje, razrješenje, bojno izvješće s ishodom „Napad uspio”.
 - `tests/e2e/smoke.mjs` (19 koraka u Chromiumu, mobilni viewport + desktop): registracija, stvaranje simulacije, karta, odabir teritorija, novačenje, nacrt→predaja→uređivanje→uklanjanje, uvjetna naredba, planer napada (6 koraka), diplomacija i poruke, tehnologija, porezi, profil, ljestvica, zaključavanje + razrješenje, izvještaj, obavijesti, cijela kampanja + ekran rezultata, admin, desktop raspored. Bez konzolnih grešaka i bez HTTP 5xx.
 
 ## Konfiguracija okoline

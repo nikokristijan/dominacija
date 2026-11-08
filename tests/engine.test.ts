@@ -10,6 +10,7 @@ import { respondToOffer, terminateAlliance, createAlliance, sendMessage } from '
 import { computeScore } from '../src/engine/scoring';
 import { neighborIds, applyLossFractionForTest } from './helpers';
 import { objectiveProgress, addConditional } from '../src/engine';
+import { offsetDistance } from '../src/engine/hex';
 
 const NOW = '2026-01-01T08:00:00.000Z';
 function mk(n = 4, seed = 'test-seed', cfg?: any): GameState {
@@ -41,12 +42,12 @@ describe('Generiranje karte i početni uvjeti', () => {
       const sig = (id: string) => playerTerritories(s, id).map((t) => t.terrain).sort().join(',');
       const first = sig(s.playerOrder[0]);
       for (const id of s.playerOrder) expect(sig(id)).toBe(first);
-      // Gospodarski potencijal u radijusu 2 unutar 30%
+      // Količina kopna u radijusu 3 heksa: obala otoka ne smije kažnjavati nikoga (identična jezgra je provjerena gore)
       const pot = s.playerOrder.map((id) => {
         const cap = s.map.territories[s.players[id].capitalId];
-        return Object.values(s.map.territories).filter((t) => t.terrain !== 'water' && Math.abs(t.row - cap.row) <= 2 && Math.abs(t.col - cap.col) <= 3).reduce((a, t) => a + (t.terrain === 'mountains' ? 2 : t.terrain === 'special' ? 3 : 1), 0);
+        return Object.values(s.map.territories).filter((t) => t.terrain !== 'water' && offsetDistance(t, cap) <= 3).reduce((a, t) => a + 1, 0);
       });
-      expect(Math.max(...pot) / Math.min(...pot)).toBeLessThan(1.6);
+      expect(Math.max(...pot) / Math.min(...pot)).toBeLessThan(1.25);
     }
   });
   it('kopno je povezano', () => {

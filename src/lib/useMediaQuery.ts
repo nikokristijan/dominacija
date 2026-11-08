@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 /** Vraća true kad upit vrijedi (samo na klijentu; prije mounta je false). */
 export function useMediaQuery(query: string): boolean {
-  const [m, setM] = useState(false);
+  // Na klijentu odmah točna vrijednost (bez treperenja mobilni→desktop); na serveru false.
+  const [m, setM] = useState(() => (typeof window === 'undefined' ? false : window.matchMedia(query).matches));
   useEffect(() => {
     const mq = window.matchMedia(query);
     const on = () => setM(mq.matches);

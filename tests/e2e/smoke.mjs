@@ -56,7 +56,7 @@ await step('conditional', async () => {
 });
 await step('planner', async () => {
   await p.goto(campaignUrl + '/karta');
-  await p.waitForSelector('[data-testid=hexmap]');
+  await p.waitForSelector('[data-testid=hexmap]'); await p.waitForTimeout(500);
   const ids = await p.$$eval('[data-tid]', (els) => els.map((e) => e.getAttribute('data-tid')));
   let ok = false;
   for (const id of ids) { await p.locator(`[data-tid="${id}"]`).first().dispatchEvent("click"); await p.waitForTimeout(140); if (await p.locator('[data-testid=attack-btn]').count()) { ok = true; break; } }
@@ -66,7 +66,7 @@ await step('planner', async () => {
   await p.locator('[data-testid=planner] button.chip', { hasText: /^Sve$/ }).first().click(); await shot('11-planner-2');
   for (let i = 0; i < 4; i++) { await p.click('[data-testid=planner-next]'); await p.waitForTimeout(250); }
   await p.waitForSelector('[data-testid=order-preview]'); await shot('12-planner-review');
-  await p.click('[data-testid=planner-submit]'); await p.waitForURL(/naredbe/); await p.waitForSelector('[data-testid=order-row]');
+  await p.click('[data-testid=planner-submit]'); await p.waitForSelector('text=Napad predan'); await p.goto(campaignUrl + '/naredbe'); await p.waitForSelector('[data-testid=order-row]');
 });
 await step('diplomacy', async () => { await p.goto(campaignUrl + '/diplomacija'); await p.waitForSelector('[data-testid=diplomacy-screen]'); await p.waitForTimeout(300); await shot('13-diplomacy'); await p.click('[role=tab]:has-text("Pregovori")'); await p.waitForSelector('[data-testid=messages]'); await p.fill('[data-testid=message-input]', 'Pozdrav, savezniče?'); await p.click('[data-testid=message-send]'); await p.waitForSelector('text=Pozdrav, savezniče?'); });
 await step('tech', async () => { await p.goto(campaignUrl + '/tehnologija'); await p.waitForSelector('[data-testid=tech-screen]'); await shot('14-tech'); });

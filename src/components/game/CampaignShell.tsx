@@ -1,12 +1,11 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FACTIONS } from '@/engine/config';
 import { Icon, type IconName } from '@/components/art/Icons';
-import { Penguin } from '@/components/art/Penguin';
+import { FactionBadge } from '@/components/art/Factions';
 import { ResourceIcon } from '@/components/art/Resources';
-import { FactionBadge, FactionBanner } from '@/components/art/Factions';
 import { Toasts } from '@/components/ui/kit';
 import { Logo } from '@/components/Logo';
 import { formatRemaining } from '@/lib/format';
@@ -14,16 +13,23 @@ import { api } from '@/lib/api';
 import { GameProvider, useGame } from './GameProvider';
 import { ResPill } from './common';
 import { Lobby } from '@/components/screens/Lobby';
+import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
+import { installTutorialApi, uninstallTutorialApi } from '@/components/tutorial/localApi';
 
-const NAV: Array<{ href: string; label: string; icon: IconName; key: string }> = [
-  { href: '', label: 'Početna', icon: 'home', key: 'home' },
-  { href: '/karta', label: 'Karta', icon: 'map', key: 'map' },
-  { href: '/naredbe', label: 'Naredbe', icon: 'orders', key: 'orders' },
-  { href: '/diplomacija', label: 'Diplomacija', icon: 'handshake', key: 'dip' },
-  { href: '/vise', label: 'Više', icon: 'more', key: 'more' },
+const NAV: Array<{ href: string; label: string; icon: IconName; key: string; mobile?: boolean }> = [
+  { href: '', label: 'Početna', icon: 'home', key: 'home', mobile: true },
+  { href: '/karta', label: 'Karta', icon: 'map', key: 'map', mobile: true },
+  { href: '/naredbe', label: 'Operacije', icon: 'swords', key: 'orders', mobile: true },
+  { href: '/kraljevstvo', label: 'Razvoj', icon: 'layers', key: 'dev' },
+  { href: '/diplomacija', label: 'Diplomacija', icon: 'handshake', key: 'dip', mobile: true },
+  { href: '/tehnologija', label: 'Istraživanje', icon: 'flask', key: 'tech' },
+  { href: '/ljestvica', label: 'Poredak', icon: 'trophy', key: 'rank' },
 ];
 
 export function CampaignShell({ id, children }: { id: string; children: React.ReactNode }) {
+  // Vodič: lokalni engine u pregledniku umjesto servera (instalira se prije prvog dohvata stanja)
+  if (id === 'tutorial') installTutorialApi();
+  useEffect(() => { if (id === 'tutorial') installTutorialApi(); return () => { if (id === 'tutorial') uninstallTutorialApi(); }; }, [id]);
   return <GameProvider id={id}><Inner id={id}>{children}</Inner></GameProvider>;
 }
 
@@ -37,26 +43,27 @@ function Inner({ id, children }: { id: string; children: React.ReactNode }) {
   if (meta.status === 'disabled') return <Splash text={`Kampanja je onemogućena. ${meta.disabledReason ?? ''}`} error />;
   if (!view) return <Splash text="Priprema…" />;
   return (
-    <div className="h-dvh flex bg-bg overflow-hidden">
+    <div className="h-dvh flex bg-white overflow-hidden">
       <Sidebar id={id} />
       <div className="flex-1 min-w-0 flex flex-col">
         <TopBar id={id} />
-        <main className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</main>
+        <main className="flex-1 min-h-0 flex flex-col overflow-hidden relative">{children}</main>
         <BottomNav id={id} />
       </div>
       <Toasts toasts={toasts} />
+      {id === 'tutorial' && <TutorialOverlay />}
     </div>
   );
 }
 
 function Splash({ text, error }: { text: string; error?: boolean }) {
-  return (<div className="h-dvh bg-kingdom grid place-items-center text-white text-center px-6"><div><div className="bob inline-block"><Penguin mood={error ? 'defeated' : 'thinking'} size={140} /></div><p className="font-display text-xl mt-2">{text}</p>{error && <Link href="/igra" className="btn btn-yellow mt-4">Natrag na kampanje</Link>}</div></div>);
+  return (<div className="h-dvh grid place-items-center text-center px-6"><div><div className="mx-auto h-8 w-8 rounded-full border-2 border-neutral-200 border-t-primary animate-spin" /><p className={`mt-4 font-semibold ${error ? 'text-bad' : 'text-neutral-500'}`}>{text}</p>{error && <Link href="/igra" className="btn btn-ghost mt-4">Natrag na kampanje</Link>}</div></div>);
 }
 
 function isActive(path: string, base: string, href: string) {
   if (href === '') return path === base;
-  if (href === '/vise') return ['/vise', '/tehnologija', '/izvjestaji', '/profil', '/ljestvica', '/obavijesti', '/kraljevstvo', '/rezultati', '/postavke'].some((p) => path.startsWith(base + p));
   if (href === '/naredbe') return path.startsWith(base + '/naredbe') || path.startsWith(base + '/operacija');
+  if (href === '/vise') return ['/vise', '/izvjestaji', '/profil', '/obavijesti', '/rezultati'].some((p) => path.startsWith(base + p));
   return path.startsWith(base + href);
 }
 
@@ -72,18 +79,21 @@ function BottomNav({ id }: { id: string }) {
   const path = usePathname();
   const g = useGame();
   const base = `/k/${id}`;
+  const items = [...NAV.filter((n) => n.mobile), { href: '/vise', label: 'Više', icon: 'more' as IconName, key: 'more', mobile: true }];
+  const order = ['home', 'map', 'orders', 'dip', 'more'];
+  items.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
   return (
-    <nav className="lg:hidden shrink-0 bg-white border-t-2 border-line pb-[var(--safe-b)] z-30" aria-label="Glavna navigacija">
+    <nav className="lg:hidden shrink-0 bg-white/95 backdrop-blur border-t border-line pb-[var(--safe-b)] z-30" aria-label="Glavna navigacija">
       <ul className="grid grid-cols-5">
-        {NAV.map((n) => {
+        {items.map((n) => {
           const active = isActive(path, base, n.href);
           const b = badgeFor(n.key, g);
           return (
             <li key={n.key}>
-              <Link href={base + n.href} className={`relative flex flex-col items-center justify-center gap-0.5 min-h-16 pt-1 ${active ? 'text-primary' : 'text-muted'}`} aria-current={active ? 'page' : undefined} data-testid={`nav-${n.key}`}>
-                <span className={`grid place-items-center h-9 w-12 rounded-2xl transition-colors ${active ? 'bg-primary-100' : ''}`}><Icon name={n.icon} size={24} stroke={active ? 2.6 : 2.2} /></span>
-                <span className={`text-[11px] ${active ? 'font-black' : 'font-bold'}`}>{n.label}</span>
-                {b && <span className="absolute top-1 right-[22%] min-w-5 h-5 px-1 rounded-full bg-bad text-white text-[10px] font-black grid place-items-center border-2 border-white">{b}</span>}
+              <Link href={base + n.href} className={`relative flex flex-col items-center justify-center gap-0.5 min-h-14 ${active ? 'text-primary' : 'text-neutral-400'}`} aria-current={active ? 'page' : undefined} data-testid={`nav-${n.key}`} data-tour={`nav-${n.key}`}>
+                <Icon name={n.icon} size={22} stroke={active ? 2 : 1.7} />
+                <span className="text-[10px] font-semibold">{n.label}</span>
+                {b && <span className="absolute top-1.5 left-1/2 ml-2 min-w-4 h-4 px-1 rounded-full bg-primary text-white text-[9px] font-bold grid place-items-center">{b}</span>}
               </Link>
             </li>
           );
@@ -100,32 +110,43 @@ function TopBar({ id }: { id: string }) {
   const net = v.forecast.net;
   const stab = Math.round(v.me.stability);
   const locked = v.phase !== 'planning';
+  const myScore = v.ranking.find((r) => r.playerId === v.me.id)?.score ?? 0;
+  const pendingOffers = v.offers.filter((o) => o.to === v.me.id && o.status === 'pending').length;
+  const phaseText = v.phase === 'completed' ? 'Završeno' : locked ? 'Razrješenje' : rem !== null ? `${formatRemaining(rem)} do zaključavanja` : 'Planiranje';
   return (
-    <header className="shrink-0 panel-dark rounded-none lg:rounded-b-3xl pt-[calc(0.5rem+var(--safe-t))] pb-2 px-3 z-20">
-      <div className="flex items-center gap-2">
-        <Link href="/igra" className="lg:hidden grid place-items-center h-10 w-10 rounded-xl bg-white/15" aria-label="Moje kampanje"><Icon name="back" size={20} /></Link>
-        <div className="min-w-0 flex-1 leading-tight">
-          <div className="text-[11px] font-extrabold text-white/70 truncate">{meta.name}</div>
-          <div className="font-display text-lg flex items-center gap-2" data-testid="day-label">Dan {v.round} / {v.totalRounds}
-            <span className={`chip ${locked ? 'chip-warn' : 'chip-yellow'}`}>{v.phase === 'completed' ? 'Završeno' : locked ? 'Razrješenje' : 'Planiranje'}</span></div>
+    <header className="shrink-0 bg-white border-b border-line pt-[var(--safe-t)] z-20" data-tour="topbar">
+      <div className="flex items-center gap-3 lg:gap-6 px-3 lg:px-6 min-h-14 lg:min-h-[72px]">
+        <Link href="/igra" className="lg:hidden grid place-items-center h-9 w-9 -ml-1 rounded-full text-neutral-500" aria-label="Moje kampanje"><Icon name="back" size={20} /></Link>
+        <div className="hidden lg:block w-[13.5rem] shrink-0"><Logo /></div>
+        <div className="flex items-center gap-2.5 lg:rounded-full lg:border lg:border-line lg:pl-3.5 lg:pr-5 lg:py-1.5 min-w-0 shrink-0 whitespace-nowrap" data-testid="day-label" data-tour="day">
+          <Icon name="clock" size={20} className="hidden lg:block text-neutral-500" />
+          <div className="leading-tight"><div className="font-semibold text-[15px]">Dan {v.round} / {v.totalRounds}</div><div className={`text-xs ${rem !== null && rem < 3600_000 && !locked ? 'text-primary font-semibold' : 'text-muted'}`} data-testid="remaining">{id === 'tutorial' ? 'Vodič — vježba' : phaseText}</div></div>
         </div>
-        {v.phase === 'planning' && rem !== null && (
-          <div className="text-right leading-tight" data-testid="remaining">
-            <div className="text-[10px] font-extrabold text-white/70 uppercase">Preostalo</div>
-            <div className={`font-display text-lg ${rem < 3600_000 ? 'text-accent' : ''}`}>{formatRemaining(rem)}</div>
-          </div>
-        )}
-        <Link href={`/k/${id}/obavijesti`} className="relative grid place-items-center h-10 w-10 rounded-xl bg-white/15" aria-label="Obavijesti"><Icon name="bell" size={20} />{g.unread > 0 && <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-bad text-[10px] font-black grid place-items-center border-2 border-[#3a24a0]">{g.unread}</span>}</Link>
+        <div className="hidden lg:flex items-center gap-7 ml-2" data-tour="resources">
+          <ResPill name="food" value={v.me.resources.food} delta={net.food} label="Hrana" />
+          <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} label="Zlato" />
+          <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} label="Željezo" />
+          <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} label="Drvo" />
+          <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} label="Utjecaj" />
+          <div className="flex items-center gap-2" title="Bodovi"><Icon name="trophy" size={20} className="text-neutral-500" /><span className="text-lg font-semibold">{myScore}</span></div>
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <div className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 h-9 text-sm font-semibold mr-1 ${stab < v.config.stability.warnRed ? 'bg-red-50 text-bad' : stab < v.config.stability.warnYellow ? 'bg-orange-50 text-warn' : 'bg-neutral-50 text-neutral-600'}`} title="Stabilnost"><ResourceIcon name="stability" size={16} />{stab}</div>
+          <Link href={`/k/${id}/naredbe`} className="flex items-center gap-1.5 rounded-full bg-primary-100 text-primary px-3 h-9 text-sm font-semibold whitespace-nowrap" data-testid="cp-chip-top" data-tour="cp"><ResourceIcon name="command" size={16} />{v.cp.available - v.cp.used}<span className="hidden sm:inline">/ {v.cp.available}&nbsp;ZB</span></Link>
+          <Link href={`/k/${id}/ljestvica`} className="hidden lg:grid place-items-center h-10 w-10 rounded-full text-neutral-500 hover:bg-neutral-50" aria-label="Poredak"><Icon name="list" size={20} /></Link>
+          <Link href={`/k/${id}/diplomacija`} className="relative hidden lg:grid place-items-center h-10 w-10 rounded-full text-neutral-500 hover:bg-neutral-50" aria-label="Poruke"><Icon name="send" size={20} />{pendingOffers > 0 && <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />}</Link>
+          <Link href={`/k/${id}/obavijesti`} className="relative grid place-items-center h-10 w-10 rounded-full text-neutral-500 hover:bg-neutral-50" aria-label="Obavijesti"><Icon name="bell" size={20} />{g.unread > 0 && <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />}</Link>
+        </div>
       </div>
-      <div className="scroll-x mt-2 pb-0.5">
-        <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} label="Zlato" />
-        <ResPill name="food" value={v.me.resources.food} delta={net.food} label="Hrana" />
-        <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} label="Željezo" />
-        <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} label="Drvo" />
-        <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} label="Utjecaj" />
-        <div className={`flex items-center gap-1.5 rounded-2xl pl-1 pr-2.5 py-1 min-w-[4.6rem] ${stab < v.config.stability.warnRed ? 'bg-red-500/50' : stab < v.config.stability.warnYellow ? 'bg-orange-400/40' : 'bg-white/15'}`} title="Stabilnost"><ResourceIcon name="stability" size={26} /><div className="leading-none"><div className="font-display font-extrabold text-[15px]">{stab}</div><div className="text-[10px] font-extrabold text-white/70">stab.</div></div></div>
-        <div className="flex items-center gap-1.5 rounded-2xl bg-accent/90 text-ink pl-1 pr-2.5 py-1 min-w-[4.6rem]" title="Zapovjedni bodovi"><span className="grid place-items-center h-6 w-6 rounded-full bg-primary text-white text-[10px] font-black">ZB</span><div className="leading-none"><div className="font-display font-extrabold text-[15px]">{v.cp.available - v.cp.used}/{v.cp.available}</div><div className="text-[10px] font-extrabold">slobodno</div></div></div>
+      <div className="lg:hidden scroll-x px-3 pb-2 gap-4">
+        <ResPill name="food" value={v.me.resources.food} delta={net.food} compact />
+        <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} compact />
+        <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} compact />
+        <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} compact />
+        <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} compact />
+        <span className="flex items-center gap-1 text-sm font-semibold text-neutral-600 shrink-0"><ResourceIcon name="stability" size={16} />{stab}</span>
       </div>
+      <span className="hidden">{meta.name}</span>
     </header>
   );
 }
@@ -136,30 +157,27 @@ function Sidebar({ id }: { id: string }) {
   const router = useRouter();
   const v = g.view!;
   const base = `/k/${id}`;
-  const rank = [...v.ranking];
-  const [busy, setBusy] = useState(false);
+  const [menu, setMenu] = useState(false);
   const f = FACTIONS[v.me.faction];
   return (
-    <aside className="hidden lg:flex w-72 shrink-0 flex-col bg-white border-r-2 border-line overflow-y-auto" aria-label="Bočna navigacija">
-      <div className="bg-kingdom text-white p-4 flex items-center gap-3">
-        <div className="shrink-0"><Penguin mood={g.mood} size={84} /></div>
-        <div className="min-w-0"><div className="font-display text-xl truncate">{v.me.name}</div><div className="text-xs font-bold text-white/80">{f.name}</div><div className="mt-1"><FactionBanner faction={v.me.faction} size={26} className="inline" /></div></div>
-      </div>
-      <nav className="p-3 space-y-1">
+    <aside className="hidden lg:flex w-[15.5rem] shrink-0 flex-col bg-white border-r border-line pt-4" aria-label="Bočna navigacija">
+      <nav className="px-3 space-y-0.5">
         {NAV.map((n) => { const active = isActive(path, base, n.href); const b = badgeFor(n.key, g); return (
-          <Link key={n.key} href={base + n.href} className={`flex items-center gap-3 rounded-2xl px-3 min-h-12 font-extrabold ${active ? 'tab-active' : 'text-ink hover:bg-primary-100'}`}>
-            <Icon name={n.icon} size={22} />{n.label}{b && <span className={`ml-auto chip ${active ? '' : 'chip-bad'}`}>{b}</span>}</Link>); })}
-        <div className="h-px bg-line my-2" />
-        {[['/tehnologija', 'Tehnologija', 'flask'], ['/izvjestaji', 'Izvještaji', 'report'], ['/kraljevstvo', 'Kraljevstvo', 'crown'], ['/ljestvica', 'Ljestvica', 'trophy'], ['/profil', 'Profil', 'user']].map(([h, l, i]) => (
-          <Link key={h} href={base + h} className={`flex items-center gap-3 rounded-2xl px-3 min-h-11 text-sm font-extrabold ${path.startsWith(base + h) ? 'text-primary bg-primary-100' : 'text-muted hover:bg-primary-100'}`}><Icon name={i as IconName} size={20} />{l}</Link>))}
+          <Link key={n.key} href={base + n.href} data-tour={`side-${n.key}`} className={`flex items-center gap-3 rounded-xl px-3.5 min-h-11 text-[15px] font-medium transition-colors ${active ? 'bg-primary-100 text-primary' : 'text-neutral-600 hover:bg-neutral-50'}`}>
+            <Icon name={n.icon} size={20} stroke={active ? 2 : 1.7} />{n.label}{b && <span className="ml-auto text-xs font-semibold text-muted">{b}</span>}</Link>); })}
       </nav>
-      <div className="p-3 mt-auto">
-        <div className="label mb-1.5">Ljestvica kampanje</div>
-        <ol className="space-y-1">{rank.map((r, i) => { const p = v.players[r.playerId]; return (
-          <li key={r.playerId} className={`flex items-center gap-2 rounded-xl px-2 py-1.5 ${r.playerId === v.me.id ? 'bg-accent/30' : 'bg-primary-100/40'}`}><span className="w-5 text-center font-black text-sm text-muted">{i + 1}</span><FactionBadge faction={p.faction} size={22} /><span className="flex-1 truncate font-extrabold text-sm">{p.name}</span><span className="font-display font-extrabold text-primary">{r.score}</span></li>); })}</ol>
-        <button className="btn btn-ghost btn-sm w-full mt-3" disabled={busy} onClick={async () => { setBusy(true); await api('/api/auth/logout', {}); router.push('/'); }}><Icon name="logout" size={16} />Odjava</button>
-        <Link href="/igra" className="btn btn-ghost btn-sm w-full mt-2">Sve kampanje</Link>
-        <div className="mt-3 flex justify-center"><Logo size={0.4} /></div>
+      <div className="mt-auto p-3 relative">
+        {menu && (
+          <div className="absolute bottom-[calc(100%-0.25rem)] left-3 right-3 bg-white rounded-2xl float-shadow p-1.5 space-y-0.5 z-20">
+            {[['/izvjestaji', 'Izvještaji', 'report'], ['/obavijesti', 'Obavijesti', 'bell'], ['/profil', 'Profil i postavke', 'user']].map(([h, l, i]) => <Link key={h} href={base + h} onClick={() => setMenu(false)} className="flex items-center gap-3 rounded-lg px-3 min-h-10 text-sm font-medium text-neutral-700 hover:bg-neutral-50"><Icon name={i as IconName} size={18} />{l}</Link>)}
+            <Link href="/igra" className="flex items-center gap-3 rounded-lg px-3 min-h-10 text-sm font-medium text-neutral-700 hover:bg-neutral-50"><Icon name="list" size={18} />Sve kampanje</Link>
+            <button onClick={async () => { await api('/api/auth/logout', {}); router.push('/'); }} className="w-full flex items-center gap-3 rounded-lg px-3 min-h-10 text-sm font-medium text-neutral-700 hover:bg-neutral-50"><Icon name="logout" size={18} />Odjava</button>
+          </div>)}
+        <button onClick={() => setMenu(!menu)} className="w-full flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-neutral-50 text-left" data-testid="user-menu">
+          <FactionBadge faction={v.me.faction} size={36} />
+          <div className="flex-1 min-w-0 leading-tight"><div className="font-semibold truncate">{v.me.name}</div><div className="text-xs text-muted truncate">{f.name}</div></div>
+          <Icon name="down" size={16} className="text-muted" />
+        </button>
       </div>
     </aside>
   );

@@ -38,18 +38,18 @@ export function OrdersScreen() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="orders-screen">
       <div className="max-w-3xl mx-auto p-3 lg:p-5 space-y-4">
-        <section className="panel-dark p-4 space-y-2">
-          <div className="flex items-center justify-between"><h1 className="text-2xl">Naredbe — dan {v.round}</h1><span className={`chip ${v.me.ready ? 'chip-good' : 'chip-yellow'}`} data-testid="ready-chip">{v.me.ready ? 'Spremno' : planning ? 'Planiranje' : 'Zaključano'}</span></div>
-          <div className="flex items-center gap-3"><ResourceIcon name="command" size={40} /><div className="flex-1"><div className="flex justify-between font-extrabold text-sm"><span>Zapovjedni bodovi</span><span data-testid="cp-used">{v.cp.used} / {v.cp.available}</span></div><Progress value={v.cp.used} max={v.cp.available} color="bg-accent" className="!bg-white/20" /></div></div>
-          <p className="text-xs font-semibold text-white/80">Naredbe su privatne do razrješenja. Resursi se rezerviraju pri predaji, a nacrti ne troše ništa. Predane naredbe možeš mijenjati do roka ili dok ne označiš „spremno”.</p>
+        <section className="card space-y-3">
+          <div className="flex items-center justify-between"><h1 className="text-2xl">Operacije · dan {v.round}</h1><span className={`chip ${v.me.ready ? 'chip-good' : 'chip-yellow'}`} data-testid="ready-chip">{v.me.ready ? 'Spremno' : planning ? 'Planiranje' : 'Zaključano'}</span></div>
+          <div className="flex items-center gap-3"><ResourceIcon name="command" size={30} className="text-neutral-500" /><div className="flex-1"><div className="flex justify-between font-extrabold text-sm"><span>Zapovjedni bodovi</span><span data-testid="cp-used">{v.cp.used} / {v.cp.available}</span></div><Progress value={v.cp.used} max={v.cp.available} color="bg-primary" /></div></div>
+          <p className="text-xs font-semibold text-muted">Naredbe su privatne do razrješenja. Resursi se rezerviraju pri predaji, a nacrti ne troše ništa. Predane naredbe možeš mijenjati do roka ili dok ne označiš „spremno”.</p>
         </section>
 
         {editable && (<section>
           <SectionTitle icon="plus">Nova naredba</SectionTitle>
           <div className="grid grid-cols-4 gap-2">
-            <Link href={`/k/${g.id}/operacija`} className="col-span-4 btn btn-red" data-testid="new-attack"><Icon name="sword" size={20} />Vojni napad (planer)</Link>
+            <Link href={`/k/${g.id}/karta?op=`} className="col-span-4 btn btn-ghost" data-testid="new-attack"><Icon name="sword" size={20} />Vojni napad — planiraj na karti</Link>
             {TYPES.map((t) => (
-              <button key={t} onClick={() => setComposer({ type: t })} className="rounded-2xl bg-white border-2 border-line min-h-20 flex flex-col items-center justify-center gap-1 text-primary active:translate-y-0.5" style={{ boxShadow: '0 3px 0 var(--color-line)' }} data-testid={`new-${t}`}>
+              <button key={t} onClick={() => setComposer({ type: t })} className="rounded-2xl bg-white border border-line min-h-20 flex flex-col items-center justify-center gap-1 text-neutral-700 hover:bg-neutral-50" data-testid={`new-${t}`}>
                 <Icon name={ORDER_LABELS[t].icon} size={26} /><span className="text-[11px] font-extrabold text-ink text-center leading-tight px-0.5">{ORDER_LABELS[t].name.replace('Trgovačka ekspedicija', 'Trgovina').replace('Obrambena operacija', 'Obrana').replace('Diplomatska misija', 'Diplomacija')}</span><span className="chip !py-0">{v.config.orderCosts[t]} ZB</span>
               </button>))}
             {v.me.status === 'resistance' && <button onClick={() => setComposer({ type: 'resistance' })} className="col-span-4 btn btn-purple" data-testid="new-resistance"><Icon name="flag" size={20} />Misija Otpora</button>}
@@ -92,11 +92,11 @@ export function OrdersScreen() {
       </div>
 
       <Sheet open={!!composer} onClose={() => setComposer(null)} title="Naredba" tall>
-        {composer && <><h2 className="text-2xl text-secondary mb-1 flex items-center gap-2"><Icon name={ORDER_LABELS[composer.type].icon} />{ORDER_LABELS[composer.type].name}</h2><p className="text-sm text-muted mb-3">{ORDER_LABELS[composer.type].desc}</p>
+        {composer && <><h2 className="text-2xl  mb-1 flex items-center gap-2"><Icon name={ORDER_LABELS[composer.type].icon} />{ORDER_LABELS[composer.type].name}</h2><p className="text-sm text-muted mb-3">{ORDER_LABELS[composer.type].desc}</p>
           <OrderComposer key={composer.order?.id ?? composer.type} type={composer.type} editingId={composer.order?.id} initial={composer.order ? ({ type: composer.order.type, params: composer.order.params } as OrderInput) : undefined} onDone={() => setComposer(null)} /></>}
       </Sheet>
       <Sheet open={cond} onClose={() => setCond(false)} title="Uvjetna naredba" tall>
-        <h2 className="text-2xl text-secondary mb-3">Nova uvjetna naredba</h2>
+        <h2 className="text-2xl  mb-3">Nova uvjetna naredba</h2>
         {cond && <ConditionalComposer onDone={() => setCond(false)} />}
       </Sheet>
     </div>
@@ -110,9 +110,9 @@ function OrderRow({ o, i, n, draft, editable, busy, onEdit, onRemove, onSubmit, 
   return (
     <div className={`rounded-3xl border-2 p-3 flex items-start gap-3 ${draft ? 'border-dashed border-line bg-white' : 'border-primary/40 bg-primary-100/50'}`} data-testid="order-row">
       {!draft && onMove && editable && <div className="flex flex-col -my-1"><button className="h-7 w-7 grid place-items-center rounded-lg text-primary disabled:opacity-25" disabled={i === 0 || busy} onClick={() => onMove(-1)} aria-label="Gore"><Icon name="down" size={16} className="rotate-180" /></button><span className="text-center text-xs font-black text-muted">{i + 1}</span><button className="h-7 w-7 grid place-items-center rounded-lg text-primary disabled:opacity-25" disabled={i === n - 1 || busy} onClick={() => onMove(1)} aria-label="Dolje"><Icon name="down" size={16} /></button></div>}
-      <div className="h-11 w-11 shrink-0 rounded-2xl bg-white border-2 border-line grid place-items-center text-primary"><Icon name={ORDER_LABELS[o.type].icon} size={24} /></div>
+      <div className="h-11 w-11 shrink-0 rounded-2xl bg-white border border-line grid place-items-center text-primary"><Icon name={ORDER_LABELS[o.type].icon} size={24} /></div>
       <div className="flex-1 min-w-0">
-        <div className="font-display text-lg text-secondary leading-tight">{d.title}</div>
+        <div className="font-semibold leading-tight">{d.title}</div>
         <div className="text-sm text-muted font-bold">{d.detail}</div>
         <div className="mt-1 flex flex-wrap items-center gap-2"><span className="chip chip-yellow">{o.cpCost} ZB</span>{draft ? <span className="chip">Nacrt</span> : o.status === 'locked' ? <span className="chip chip-warn">Zaključano</span> : <span className="chip chip-good">Predano</span>}</div>
         {editable && <div className="mt-2 flex flex-wrap gap-2">

@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { TECHS, TECH_CATEGORIES, techCost, type TechCategory, type TechDef } from '@/engine/tech';
 import { Icon, type IconName } from '@/components/art/Icons';
-import { ResearchEffect } from '@/components/art/Effects';
 import { Sheet } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
 import { OrderComposer } from '@/components/game/OrderComposer';
@@ -28,7 +27,7 @@ export function TechScreen() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="tech-screen">
       <div className="max-w-5xl mx-auto p-3 lg:p-5 space-y-3">
-        <header className="flex items-center gap-3"><ResearchEffect size={64} /><div><h1 className="text-2xl text-secondary">Tehnologija</h1><p className="text-sm text-muted font-bold">Istraženo: {v.me.techs.length}/{TECHS.length}. Svako istraživanje košta 3 ZB i resurse — izaberi pametno, u 7 dana ne možeš sve.</p></div></header>
+        <header className="flex items-center gap-3"><Icon name="flask" size={32} stroke={1.5} className="text-neutral-400" /><div><h1 className="text-2xl text-secondary">Tehnologija</h1><p className="text-sm text-muted font-bold">Istraženo: {v.me.techs.length}/{TECHS.length}. Svako istraživanje košta 3 ZB i resurse — izaberi pametno, u 7 dana ne možeš sve.</p></div></header>
         <div className="scroll-x">{(['all', ...Object.keys(TECH_CATEGORIES)] as Array<TechCategory | 'all'>).map((c) => <button key={c} onClick={() => setCat(c)} className={`shrink-0 rounded-2xl px-3.5 min-h-10 font-extrabold text-sm ${cat === c ? 'tab-active' : 'bg-white border-2 border-line text-primary'}`}>{c === 'all' ? 'Sve' : TECH_CATEGORIES[c].name}</button>)}</div>
         <div className={`grid gap-4 ${cat === 'all' ? 'lg:grid-cols-5 sm:grid-cols-2' : 'grid-cols-1 max-w-md mx-auto'}`}>
           {cats.map((c) => (
@@ -49,7 +48,7 @@ export function TechScreen() {
       <Sheet open={!!sel} onClose={() => setSel(null)} title="Tehnologija">
         {sel && (() => { const st = state(sel); return (
           <div className="space-y-3">
-            <div className="flex items-start gap-3"><ResearchEffect size={72} /><div><div className="chip" style={{ background: TECH_CATEGORIES[sel.category].color + '22', color: TECH_CATEGORIES[sel.category].color }}>{TECH_CATEGORIES[sel.category].name} · razina {sel.tier}</div><h2 className="text-2xl text-secondary mt-1">{sel.name}</h2></div></div>
+            <div className="flex items-start gap-3"><Icon name="flask" size={36} stroke={1.5} className="text-neutral-400 shrink-0" /><div><div className="chip" style={{ background: TECH_CATEGORIES[sel.category].color + '22', color: TECH_CATEGORIES[sel.category].color }}>{TECH_CATEGORIES[sel.category].name} · razina {sel.tier}</div><h2 className="text-2xl text-secondary mt-1">{sel.name}</h2></div></div>
             <p className="font-bold">{sel.description}</p>
             <div className="rounded-2xl bg-primary-100/60 p-3 space-y-1"><div className="label">Cijena</div><div className="flex items-center gap-3"><span className="chip chip-yellow">3 ZB</span><CostLine cost={costOf(sel)} /></div>{costOf(sel).gold !== sel.cost.gold && <div className="text-xs text-good font-bold">Popust istraživačkih centara uračunat.</div>}</div>
             {sel.requires.length > 0 && <div className="text-sm font-bold">Preduvjet: {sel.requires.map((r) => TECHS.find((x) => x.id === r)?.name).join(', ')} {sel.requires.every((r) => v.me.techs.includes(r)) ? '✓' : ''}</div>}

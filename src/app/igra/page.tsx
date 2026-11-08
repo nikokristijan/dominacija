@@ -6,7 +6,7 @@ import { FACTION_IDS, FACTIONS } from '@/engine/config';
 import type { FactionId } from '@/engine/types';
 import type { CampaignMeta } from '@/server/service';
 import { api } from '@/lib/api';
-import { Penguin } from '@/components/art/Penguin';
+import { Logo } from '@/components/Logo';
 import { FactionBadge } from '@/components/art/Factions';
 import { Icon } from '@/components/art/Icons';
 import { Sheet, Seg, Field, Empty } from '@/components/ui/kit';
@@ -29,35 +29,39 @@ export default function Hub() {
   useEffect(() => { void load(); }, [load]);
 
   return (
-    <main className="min-h-dvh bg-bg pb-24">
-      <header className="bg-kingdom text-white px-4 pt-[calc(1rem+var(--safe-t))] pb-6 rounded-b-[2rem]">
+    <main className="min-h-dvh bg-white pb-24">
+      <header className="px-5 pt-[calc(1rem+var(--safe-t))] pb-4 border-b border-line">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Penguin mood="happy" size={72} />
-          <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white/80">Dobrodošao,</div><h1 className="text-2xl truncate">{me?.displayName ?? '…'}</h1></div>
+          <Logo size={0.8} />
+          <div className="flex-1" />
+          <span className="text-sm text-muted hidden sm:inline">{me?.displayName ?? ''}</span>
           {me?.admin && <Link href="/admin" className="btn btn-ghost btn-sm">Admin</Link>}
-          <button className="btn btn-ghost btn-sm" onClick={async () => { await api('/api/auth/logout', {}); router.push('/'); router.refresh(); }} aria-label="Odjava"><Icon name="logout" size={18} /></button>
+          <button className="btn btn-ghost btn-sm" onClick={async () => { await api('/api/auth/logout', {}); router.push('/'); router.refresh(); }} aria-label="Odjava"><Icon name="logout" size={16} /></button>
         </div>
       </header>
-      <div className="max-w-2xl mx-auto px-4 -mt-3 space-y-3">
+      <div className="max-w-2xl mx-auto px-5 pt-5 space-y-3">
+        <Link href="/k/tutorial/karta" className="flex items-center gap-4 rounded-2xl border border-primary/30 bg-primary-100 px-5 py-4" data-testid="tutorial-card">
+          <Icon name="play" size={26} className="text-primary shrink-0" /><div className="flex-1"><div className="font-semibold text-primary">Prvi put? Pokreni vodič</div><div className="text-sm text-neutral-600">Probna bitka kroz sve funkcije igre, oko 8 minuta. Ništa ne utječe na prave kampanje.</div></div><Icon name="chevron" className="text-primary" />
+        </Link>
         <div className="grid grid-cols-2 gap-3">
           <button className="btn btn-yellow" onClick={() => setSheet('create')} data-testid="new-campaign"><Icon name="plus" /> Nova kampanja</button>
           <button className="btn btn-purple" onClick={() => setSheet('join')} data-testid="join-campaign"><Icon name="users" /> Pridruži se</button>
         </div>
         {err && <p role="alert" className="card-flat bg-red-50 text-red-800 font-bold">{err}</p>}
-        <h2 className="text-lg text-secondary pt-2">Tvoje kampanje</h2>
+        <h2 className="text-[15px] pt-3">Tvoje kampanje</h2>
         {rows === null && <div className="card shimmer h-24" />}
-        {rows?.length === 0 && <Empty title="Još nemaš kampanju" text="Stvori privatnu kampanju za prijatelje ili uđi pozivnim kodom. Za brzo isprobavanje otvori razvojnu simulaciju s botovima." />}
+        {rows?.length === 0 && <Empty title="Još nemaš kampanju" text="Stvori privatnu kampanju za prijatelje ili uđi pozivnim kodom. Za brzo isprobavanje otvori simulaciju s botovima." />}
         {rows?.map((c) => (
-          <Link key={c.id} href={`/k/${c.id}`} className="card flex items-center gap-3 active:translate-y-0.5 block" data-testid={`campaign-${c.id}`}>
-            {c.myFaction ? <FactionBadge faction={c.myFaction} size={46} /> : <div className="h-11 w-11 rounded-full bg-primary-100 grid place-items-center text-primary"><Icon name="crown" /></div>}
+          <Link key={c.id} href={`/k/${c.id}${c.status === 'active' ? '/karta' : ''}`} className="card flex items-center gap-3 hover:bg-neutral-50" data-testid={`campaign-${c.id}`}>
+            {c.myFaction ? <FactionBadge faction={c.myFaction} size={46} /> : <div className="h-11 w-11 rounded-full bg-neutral-100 grid place-items-center text-neutral-500"><Icon name="crown" /></div>}
             <div className="flex-1 min-w-0">
-              <div className="font-display text-lg text-secondary truncate">{c.name}</div>
+              <div className="font-semibold truncate">{c.name}</div>
               <div className="text-sm text-muted">{c.members.length}/{c.maxPlayers} igrača{c.status === 'active' && c.round ? ` · Dan ${c.round}/${c.totalRounds}` : ''}{c.devSimulation ? ' · simulacija' : ''}</div>
             </div>
             <span className={`chip ${STATUS[c.status].c}`}>{STATUS[c.status].t}</span>
           </Link>
         ))}
-        <p className="text-center text-xs text-muted pt-4">Dominacija: Rise of Empires · razvojna verzija 0.1</p>
+        <p className="text-center text-xs text-muted pt-4">Dominacija · razvojna verzija 0.2</p>
       </div>
       <CreateSheet open={sheet === 'create'} onClose={() => setSheet(null)} onCreated={(id) => router.push(`/k/${id}`)} setErr={setErr} />
       <JoinSheet open={sheet === 'join'} onClose={() => setSheet(null)} onJoined={(id) => router.push(`/k/${id}`)} />
@@ -93,7 +97,7 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
   return (
     <Sheet open={open} onClose={onClose} title="Nova kampanja">
       <div className="space-y-4" data-testid="create-sheet">
-        <h2 className="text-2xl text-secondary">Nova kampanja</h2>
+        <h2 className="text-2xl">Nova kampanja</h2>
         <Seg value={mode} onChange={setMode} options={[{ value: 'private', label: 'Privatna (prijatelji)' }, { value: 'dev', label: 'Simulacija (botovi)' }]} />
         <Field label="Naziv"><input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder={mode === 'dev' ? 'Testna simulacija' : 'Npr. Subotnji rat'} data-testid="campaign-name" /></Field>
         {mode === 'private' ? (<>
@@ -127,7 +131,7 @@ function JoinSheet({ open, onClose, onJoined }: { open: boolean; onClose: () => 
   return (
     <Sheet open={open} onClose={onClose} title="Pridruži se kampanji">
       <div className="space-y-4">
-        <h2 className="text-2xl text-secondary">Pridruži se kampanji</h2>
+        <h2 className="text-2xl">Pridruži se kampanji</h2>
         <Field label="Pozivni kod"><input className="input text-center text-2xl tracking-[0.3em] uppercase font-display" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="ABC123" data-testid="join-code" /></Field>
         <Field label="Željeno kraljevstvo"><FactionPick value={faction} onChange={setFaction} /></Field>
         {err && <p role="alert" className="rounded-xl bg-red-50 border-2 border-red-200 p-2.5 text-sm text-red-800 font-bold">{err}</p>}

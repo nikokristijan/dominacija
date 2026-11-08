@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Icon } from '@/components/art/Icons';
 import { Seg, SectionTitle } from '@/components/ui/kit';
-import { Penguin } from '@/components/art/Penguin';
 
 interface Overview { users: Array<{ id: string; username: string; isAdmin: boolean; disabled: boolean; createdAt: string }>; campaigns: Array<{ id: string; name: string; status: string; members: number; round: number | null; dev: boolean; deadline: string | null; version: number; schedule: any; disabledReason?: string }>; errors: Array<{ id: string; at: string; where: string; message: string; stack?: string }>; audit: Array<{ id: string; at: string; kind: string; detail: string; userId: string | null }>; balanceOverrides: unknown; baseConfig: any }
 const EVENTS = ['none', 'drought', 'gold_rush', 'plague', 'rebellion', 'trade_boom', 'winter', 'storm', 'harvest'];
@@ -20,8 +19,8 @@ export function AdminPanel() {
   const act = async (body: Record<string, unknown>, ok = 'Učinjeno.') => { try { await api('/api/admin', body); setMsg(ok); await load(); if (detail && body.campaignId) await open(String(body.campaignId)); } catch (e) { setMsg(e instanceof Error ? e.message : 'Greška'); } };
   const open = async (id: string) => { try { setDetail(await api(`/api/admin/campaign/${id}`)); } catch (e) { setMsg(e instanceof Error ? e.message : 'Greška'); } };
   return (
-    <main className="min-h-dvh bg-bg pb-16" data-testid="admin">
-      <header className="bg-kingdom text-white px-4 pt-[calc(1rem+var(--safe-t))] pb-5"><div className="max-w-5xl mx-auto flex items-center gap-3"><Penguin mood="confident" size={64} /><div className="flex-1"><h1 className="text-2xl">Administracija</h1><p className="text-sm font-bold text-white/80">Zaštićeno sučelje — samo za administratore</p></div><Link href="/igra" className="btn btn-ghost btn-sm">Natrag</Link></div></header>
+    <main className="min-h-dvh bg-white pb-16" data-testid="admin">
+      <header className="px-4 pt-[calc(1rem+var(--safe-t))] pb-4 border-b border-line"><div className="max-w-5xl mx-auto flex items-center gap-3"><div className="flex-1"><h1 className="text-2xl">Administracija</h1><p className="text-sm text-muted">Zaštićeno sučelje — samo za administratore</p></div><Link href="/igra" className="btn btn-ghost btn-sm">Natrag</Link></div></header>
       <div className="max-w-5xl mx-auto p-3 space-y-3">
         {msg && <div role="status" className="card-flat bg-yellow-50 font-bold flex justify-between">{msg}<button onClick={() => setMsg(null)} aria-label="Zatvori"><Icon name="close" size={16} /></button></div>}
         <Seg value={tab} onChange={setTab} options={[{ value: 'campaigns', label: 'Kampanje' }, { value: 'balance', label: 'Balans' }, { value: 'logs', label: 'Zapisnici' }, { value: 'users', label: 'Korisnici' }]} />
@@ -29,7 +28,7 @@ export function AdminPanel() {
         {o && tab === 'campaigns' && (<div className="grid lg:grid-cols-2 gap-3">
           <div className="space-y-2">{o.campaigns.length === 0 && <div className="card-flat text-muted font-bold">Nema kampanja.</div>}{o.campaigns.map((c) => (
             <div key={c.id} className="card-flat space-y-2" data-testid="admin-campaign">
-              <div className="flex items-center justify-between gap-2"><b className="font-display text-lg text-secondary">{c.name}</b><span className={`chip ${c.status === 'active' ? 'chip-good' : c.status === 'disabled' ? 'chip-bad' : ''}`}>{c.status}</span></div>
+              <div className="flex items-center justify-between gap-2"><b className="text-lg ">{c.name}</b><span className={`chip ${c.status === 'active' ? 'chip-good' : c.status === 'disabled' ? 'chip-bad' : ''}`}>{c.status}</span></div>
               <div className="text-xs text-muted font-bold">{c.members} igrača · {c.round ? `dan ${c.round}` : 'nije pokrenuta'} · {c.dev ? 'simulacija' : 'stvarna'} · verzija {c.version}{c.deadline ? ` · rok ${new Date(c.deadline).toLocaleString('hr-HR')}` : ''}</div>
               <div className="flex flex-wrap gap-2"><button className="btn btn-ghost btn-sm" onClick={() => open(c.id)}>Pregledaj</button>{c.status === 'active' && <button className="btn btn-ghost btn-sm" onClick={() => act({ action: 'resolve', campaignId: c.id }, 'Runda razriješena.')}>Razriješi sada</button>}{c.status === 'disabled' ? <button className="btn btn-green btn-sm" onClick={() => act({ action: 'enable', campaignId: c.id })}>Omogući</button> : <button className="btn btn-red btn-sm" onClick={() => act({ action: 'disable', campaignId: c.id, reason: 'Onemogućeno (kvar)' }, 'Kampanja onemogućena.')}>Onemogući</button>}</div>
             </div>))}</div>

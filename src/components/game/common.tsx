@@ -11,14 +11,15 @@ import { Counter } from '@/components/ui/kit';
 import { Icon } from '@/components/art/Icons';
 import { RES_NAMES, num } from '@/lib/format';
 
-export function ResPill({ name, value, delta, label }: { name: ResourceIconName; value: number | string; delta?: number; label?: string }) {
+export function ResPill({ name, value, delta, label, compact }: { name: ResourceIconName; value: number | string; delta?: number; label?: string; compact?: boolean }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-2xl bg-white/15 pl-1 pr-2.5 py-1 min-w-[4.6rem]" title={label ?? String(name)}>
-      <ResourceIcon name={name} size={26} />
-      <div className="leading-none">
-        <div className="font-display font-extrabold text-[15px] text-white">{typeof value === 'number' ? num(value) : value}</div>
-        {delta !== undefined && <div className={`text-[10px] font-extrabold ${delta >= 0 ? 'text-green-300' : 'text-red-300'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta * 10) / 10)}/d</div>}
+    <div className="flex items-center gap-2 shrink-0" title={label ?? String(name)}>
+      <ResourceIcon name={name} size={compact ? 17 : 22} className="text-neutral-500" />
+      <div className="leading-tight">
+        <div className={`font-semibold ${compact ? 'text-sm' : 'text-[17px]'}`}>{typeof value === 'number' ? num(value) : value}</div>
+        {delta !== undefined && !compact && <div className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta * 10) / 10)}/d</div>}
       </div>
+      {delta !== undefined && compact && <span className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta))}</span>}
     </div>
   );
 }
