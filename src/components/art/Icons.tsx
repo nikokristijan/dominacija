@@ -1,0 +1,62 @@
+import type { ReactNode } from 'react';
+
+/** UI ikone (24×24, crta currentColor). Namjerno zaobljene i "debele" da se uklapaju u cartoon stil. */
+const PATHS: Record<string, ReactNode> = {
+  home: <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v9.5h13V10" /><path d="M10 19.5v-5h4v5" /></>,
+  map: <><path d="M9 4 3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z" /><path d="M9 4v13.5M15 6.5V20" /></>,
+  orders: <><path d="M6 3.5h10a2 2 0 0 1 2 2V20l-3-1.5-2 1.5-2-1.5L9 20V5.5a2 2 0 0 0-3 0" /><path d="M6 3.5a2 2 0 0 0-2 2V7h5" /><path d="M12 9h3.5M12 12.5h3.5" /></>,
+  handshake: <><path d="m3 11 4-4 4 1.5 3-1.5 4 3.5" /><path d="M3 11l5 5.5a1.7 1.7 0 0 0 2.4 0M11 17.5l1.2 1.2a1.7 1.7 0 0 0 2.4 0l5.4-5.2L21 11" /><path d="M12.5 8.5 9 12a1.4 1.4 0 0 0 2 2l3.5-3" /></>,
+  more: <><circle cx="5.5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="18.5" cy="12" r="1.7" /></>,
+  sword: <><path d="M20 4 9 15" /><path d="M20 4v5.5L14.5 15" /><path d="M7 11l6 6M7 17l-3 3" /></>,
+  eye: <><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="3" /></>,
+  flask: <><path d="M9.5 3.5h5M10.5 3.5v6L5 18.5a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5.5-9v-6" /><path d="M7.5 15h9" /></>,
+  report: <><rect x="4.5" y="3.5" width="15" height="17" rx="2.5" /><path d="M8 8h8M8 12h8M8 16h5" /></>,
+  shield: <><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z" /></>,
+  clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
+  bell: <><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" /><path d="M10 20.5a2.2 2.2 0 0 0 4 0" /></>,
+  crown: <><path d="M4 18.5 3.5 7.5 8.5 11.5 12 5l3.5 6.5 5-4-.5 11z" /><path d="M4.5 18.5h15" /></>,
+  close: <><path d="M6 6l12 12M18 6 6 18" /></>,
+  back: <><path d="m14.5 5.5-6.5 6.5 6.5 6.5" /></>,
+  chevron: <><path d="m9.5 5.5 6.5 6.5-6.5 6.5" /></>,
+  down: <><path d="m5.5 9.5 6.5 6.5 6.5-6.5" /></>,
+  plus: <><path d="M12 5v14M5 12h14" /></>,
+  minus: <><path d="M5 12h14" /></>,
+  lock: <><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></>,
+  unlock: <><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 7.5-2" /></>,
+  trade: <><path d="M5 8h13l-3-3M19 16H6l3 3" /></>,
+  book: <><path d="M4.5 5a2 2 0 0 1 2-2H12v17H6.5a2 2 0 0 0-2 2z" /><path d="M19.5 5a2 2 0 0 0-2-2H12v17h5.5a2 2 0 0 1 2 2z" /></>,
+  user: <><circle cx="12" cy="8" r="4" /><path d="M4.5 20.5c0-4 3.3-6.5 7.5-6.5s7.5 2.5 7.5 6.5" /></>,
+  users: <><circle cx="9" cy="8.5" r="3.5" /><path d="M2.5 19.5c0-3.5 2.8-5.5 6.5-5.5s6.5 2 6.5 5.5" /><path d="M16 5.2a3.5 3.5 0 0 1 0 6.6M18 14.5c2.2.6 3.5 2.2 3.5 5" /></>,
+  send: <><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5z" /></>,
+  check: <><path d="m5 12.5 4.5 4.5L19 7" /></>,
+  warn: <><path d="M12 4 2.8 19.5h18.4z" /><path d="M12 10v4.5M12 17.3v.2" /></>,
+  info: <><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5M12 8v.2" /></>,
+  settings: <><circle cx="12" cy="12" r="3" /><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" /></>,
+  trophy: <><path d="M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3M12 14v3.5M8.5 20.5h7M9.5 17.5h5" /></>,
+  fire: <><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 2.5 2 2.5C11 9.5 11 6 12 3Z" /></>,
+  zoomin: <><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5M11 8.5v5M8.5 11h5" /></>,
+  layers: <><path d="m12 3.5 9 5-9 5-9-5z" /><path d="m3 13 9 5 9-5" /></>,
+  target: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>,
+  scroll: <><path d="M7 4h11a2 2 0 0 1 2 2v1.5H9.5V18a2 2 0 0 1-2 2 2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" /><path d="M9.5 7.5V18a2 2 0 0 0 2 2H18a2 2 0 0 0 2-2v-1.5H11" /></>,
+  flag: <><path d="M6 21V4M6 4.5h11l-2.5 4 2.5 4H6" /></>,
+  heart: <><path d="M12 20s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 7.5 4.2 4.2 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z" /></>,
+  hammer: <><path d="m14 7 3-3 3 3-3 3M14 7l-9.5 9.5a1.8 1.8 0 0 0 2.5 2.5L16.5 9.5" /></>,
+  coins: <><ellipse cx="9" cy="7" rx="5.5" ry="2.8" /><path d="M3.5 7v5c0 1.5 2.5 2.8 5.5 2.8s5.5-1.3 5.5-2.8V7" /><path d="M14.5 10.5c3 0 6 .8 6 2.3v4.4c0 1.5-2.5 2.8-5.5 2.8-2.4 0-4.4-.8-5.2-2" /></>,
+  logout: <><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4M19 12H9" /></>,
+  copy: <><rect x="8.5" y="8.5" width="11" height="11" rx="2.5" /><path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2" /></>,
+  play: <><path d="m8 5 11 7-11 7z" /></>,
+  fast: <><path d="m4 5 8 7-8 7zM12 5l8 7-8 7z" /></>,
+  list: <><path d="M8.5 6.5h11M8.5 12h11M8.5 17.5h11M4.5 6.5h.1M4.5 12h.1M4.5 17.5h.1" /></>,
+  down2: <><path d="M12 4v13M6 12l6 6 6-6" /></>,
+  sparkle: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 16l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" /></>,
+};
+export type IconName = keyof typeof PATHS;
+export const ICON_NAMES = Object.keys(PATHS) as IconName[];
+
+export function Icon({ name, size = 24, stroke = 2.2, className = '' }: { name: IconName; size?: number; stroke?: number; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      {PATHS[name]}
+    </svg>
+  );
+}

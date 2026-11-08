@@ -58,7 +58,6 @@ export function resolveRound(prev: GameState, opts: { now?: string } = {}): Game
   const R = s.round;
   const now = opts.now ?? new Date(0).toISOString();
   s.phase = 'resolution';
-  s.notificationsOut = [];
   const c: Ctx = {
     s, R, now, ledger: {}, lost: {}, conquered: {}, capitalLost: {}, moods: {}, battlesByTarget: new Map(), attackedBy: new Map(),
     pendingTechs: [], intelOrders: [], noOrders: new Set(),

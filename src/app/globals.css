@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #5B3DF6;
+  --color-primary-600: #4A2FD6;
+  --color-primary-100: #ECE7FF;
+  --color-secondary: #38218C;
+  --color-accent: #FFD23F;
+  --color-accent-600: #F5B800;
+  --color-good: #22C55E;
+  --color-warn: #F97316;
+  --color-bad: #EF4444;
+  --color-ink: #211B43;
+  --color-bg: #F7F4FF;
+  --color-card: #FFFFFF;
+  --color-line: #DCD3FF;
+  --color-muted: #6B628F;
+  --font-sans: "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Baloo 2", "Nunito", ui-rounded, system-ui, sans-serif;
+  --shadow-chunk: 0 4px 0 0 rgba(56, 33, 140, 0.28);
+  --shadow-soft: 0 6px 20px -6px rgba(56, 33, 140, 0.28);
+}
+
+:root { color-scheme: light; --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px); }
+html, body { background: var(--color-bg); color: var(--color-ink); font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+body { min-height: 100dvh; font-weight: 600; }
+h1, h2, h3, .font-display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.01em; }
+button, a, input, select, textarea { font: inherit; }
+:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; border-radius: 12px; }
+
+/* ───── Komponente ───── */
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 min-h-12 font-extrabold select-none transition-transform active:translate-y-[3px] disabled:opacity-50 disabled:pointer-events-none; font-family: var(--font-display); font-size: 1.05rem; }
+  .btn-yellow { @apply bg-accent text-ink; box-shadow: 0 4px 0 0 #C99A00, inset 0 2px 0 rgba(255,255,255,0.45); }
+  .btn-yellow:active { box-shadow: 0 1px 0 0 #C99A00; }
+  .btn-purple { @apply bg-primary text-white; box-shadow: 0 4px 0 0 #2E1A8F, inset 0 2px 0 rgba(255,255,255,0.25); }
+  .btn-purple:active { box-shadow: 0 1px 0 0 #2E1A8F; }
+  .btn-ghost { @apply bg-white text-primary border-2 border-line; box-shadow: 0 3px 0 0 var(--color-line); }
+  .btn-ghost:active { box-shadow: 0 0 0 0 var(--color-line); }
+  .btn-red { @apply bg-bad text-white; box-shadow: 0 4px 0 0 #A61E2B; }
+  .btn-green { @apply bg-good text-white; box-shadow: 0 4px 0 0 #15803D; }
+  .btn-sm { @apply min-h-10 px-3.5 text-sm rounded-xl; }
+  .card { @apply bg-white rounded-3xl border-2 border-line p-4; box-shadow: var(--shadow-soft); }
+  .card-flat { @apply bg-white rounded-2xl border-2 border-line p-3; }
+  .panel-dark { background: linear-gradient(160deg, #4B33C9, #2D1B7A); @apply text-white rounded-3xl; box-shadow: var(--shadow-soft); }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold bg-primary-100 text-primary; }
+  .chip-good { @apply bg-green-100 text-green-700; } .chip-warn { @apply bg-orange-100 text-orange-700; } .chip-bad { @apply bg-red-100 text-red-700; } .chip-yellow { @apply bg-yellow-100 text-yellow-800; }
+  .input { @apply w-full rounded-2xl border-2 border-line bg-white px-4 min-h-12 text-ink placeholder:text-muted/60; }
+  .input:focus { @apply border-primary outline-none; }
+  .label { @apply text-xs font-extrabold uppercase tracking-wide text-muted; }
+  .tab-active { @apply bg-primary text-white; box-shadow: 0 3px 0 0 #2E1A8F; }
+  .sheet-handle { @apply mx-auto h-1.5 w-12 rounded-full bg-line; }
+  .scroll-x { @apply flex gap-2 overflow-x-auto; scrollbar-width: none; } .scroll-x::-webkit-scrollbar { display: none; }
+}
+
+/* Pozadina dobrodošlice i panele */
+.bg-kingdom { background: radial-gradient(1200px 500px at 50% -10%, #8A6CFF 0%, transparent 60%), linear-gradient(180deg, #5B3DF6 0%, #38218C 100%); }
+.bg-dots { background-image: radial-gradient(rgba(91,61,246,0.10) 1.5px, transparent 1.5px); background-size: 18px 18px; }
+
+/* Animacije maskote */
+@keyframes peng-breathe { 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(1.022) } }
+@keyframes peng-blink { 0%, 90%, 100% { transform: scaleY(1) } 94% { transform: scaleY(0.08) } }
+@keyframes peng-bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+.peng-anim .peng-body { transform-box: fill-box; transform-origin: 50% 100%; animation: peng-breathe 3.4s ease-in-out infinite; }
+.peng-anim .peng-eyes { transform-box: fill-box; transform-origin: 50% 50%; animation: peng-blink 5s infinite; }
+.bob { animation: peng-bob 3s ease-in-out infinite; }
+
+/* Karta */
+@keyframes march { to { stroke-dashoffset: -24 } }
+.march { stroke-dasharray: 8 6; animation: march 1.1s linear infinite; }
+@keyframes pulse-ring { 0% { opacity: 0.9; transform: scale(0.9) } 100% { opacity: 0; transform: scale(1.35) } }
+.pulse-ring { transform-box: fill-box; transform-origin: center; animation: pulse-ring 1.6s ease-out infinite; }
+@keyframes float-up { 0% { opacity: 0; transform: translateY(6px) } 20% { opacity: 1 } 100% { opacity: 0; transform: translateY(-18px) } }
+.float-up { animation: float-up 2.2s ease-out infinite; }
+@keyframes shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
+.shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent) 0 0 / 200% 100%; animation: shimmer 2.4s infinite; }
+.map-hex { cursor: pointer; transition: filter 0.15s; }
+.map-hex:hover { filter: brightness(1.06); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  .peng-anim .peng-body, .peng-anim .peng-eyes, .bob, .march, .pulse-ring, .float-up, .shimmer { animation: none !important; }
+}
