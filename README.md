@@ -44,3 +44,6 @@ Detalji, arhitektura, status i poznata ograničenja: **[DEVELOPMENT.md](DEVELOPM
 ```bash
 npm test      # engine + RLS testovi
 ```
+
+## Objava na Vercel (da igraš s prijateljem)
+Korak-po-korak upute na hrvatskom: **[docs/VERCEL.md](docs/VERCEL.md)** (Supabase za pohranu + Vercel za hosting, oko 10 minuta).

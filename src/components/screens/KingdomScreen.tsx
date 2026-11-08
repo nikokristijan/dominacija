@@ -6,6 +6,7 @@ import { Building } from '@/components/art/Buildings';
 import { ResourceIcon } from '@/components/art/Resources';
 import { Progress, SectionTitle, Expandable } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
+import { KingdomTabs } from '@/components/game/KingdomTabs';
 import { signed } from '@/lib/format';
 import { unitTotal } from '@/engine/util';
 import Link from 'next/link';
@@ -24,7 +25,8 @@ export function KingdomScreen() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="kingdom-screen">
       <div className="max-w-3xl mx-auto p-3 lg:p-5 space-y-4">
-        <h1 className="text-2xl text-secondary">Kraljevstvo</h1>
+        <KingdomTabs />
+        <h1 className="text-2xl text-secondary">Gospodarstvo</h1>
         <section className="card space-y-3">
           <SectionTitle icon="coins">Porezi</SectionTitle>
           <div className="grid grid-cols-3 gap-2">{TAX.map((t) => { const c = v.config.tax[t.id]; return (

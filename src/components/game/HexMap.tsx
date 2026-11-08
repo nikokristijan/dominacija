@@ -167,6 +167,8 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
       setTf({ k, x, y });
     }
   }, [measured, box, fit, W, H, geo, view.me.capitalId]);
+  // statični prikaz (naslovnica): uvijek cijeli otok, bez obzira na promjenu veličine
+  useEffect(() => { if (!interactive && measured && box.w > 10 && box.h > 10) fit(box.w, box.h); }, [interactive, measured, box, fit]);
   useEffect(() => { if (fitSignal && box.w > 10) fit(box.w, box.h); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [fitSignal]);
 
   const zoomAt = useCallback((px: number, py: number, factor: number) => {

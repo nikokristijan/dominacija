@@ -2,7 +2,7 @@
 
 Asinkrona višeigračka strategija (4–8 igrača, 7 dana, istovremeno razrješenje naredbi). Mobile‑first PWA, sav sadržaj na hrvatskom.
 
-**Dizajn (v0.2):** ultra‑minimalan bijeli UI + lebdeća, blago izometrijska karta organskog oblika otoka (bez okvira, bez maskote, bez crtanih likova, bez emojija). Svi popupi su kontekstualni: plutajući desni panel na desktopu, povlačivi donji list na mobitelu. **Pomoć (?)** u gornjoj traci (pro savjeti, pojmovnik, ponovno pokretanje vodiča) i preporuke „Što dalje?” na početnoj stranici (`src/lib/suggestions.ts`, samo iz podataka koje igrač vidi). **Uvodni vodič** (`/k/tutorial/karta`, dostupan i bez računa) vodi kroz sve funkcije probnom bitkom.
+**Dizajn (v0.2):** ultra‑minimalan bijeli UI + lebdeća, blago izometrijska karta organskog oblika otoka (bez okvira, bez maskote, bez crtanih likova, bez emojija). Svi popupi su kontekstualni: plutajući desni panel na desktopu, povlačivi donji list na mobitelu. **Pomoć (?)** u gornjoj traci (pro savjeti, pojmovnik, ponovno pokretanje vodiča) i preporuke „Što dalje?” na početnoj stranici (`src/lib/suggestions.ts`, samo iz podataka koje igrač vidi). **Pojednostavljenje (v0.4):** navigacija 5 stavki (Kraljevstvo = Gospodarstvo/Istraživanje/Poredak), 3 glavne naredbe + „Više naredbi”, napad u 3 koraka + „Napredne postavke”, kartica teritorija Pregled/Detalji, jedna kolona na početnoj; nova partija: Brza/Dnevna + popuna botovima. **Uvodni vodič** (`/k/tutorial/karta`, dostupan i bez računa) vodi kroz sve funkcije probnom bitkom.
 
 > **Pravilo ovog dokumenta:** funkcija je označena „završeno” samo ako je implementirana **i** testirana. Sve ostalo je izričito navedeno kao ograničenje.
 
@@ -73,12 +73,12 @@ zaključavanje (nacrti se odbacuju; neaktivni → automatska obrana) → protuob
 | 4 Vojska | **Završeno**: 5 strategija, formacije, logistika, opskrba, povlačenje, rezerva, bojna izvješća |
 | 5 Ekonomija | **Završeno**: proizvodnja, zgrade (3 razine), populacija, porezi, stabilnost, pobune s upozorenjem |
 | 6 Napredna strategija | **Završeno**: diplomacija, špijunaža/sabotaža, tehnologije, uvjetne naredbe, tajni ciljevi, događaji, Otpor |
-| 7 Pouzdanost | **Djelomično**: server-autoritativno razrješenje, idempotencija, RLS (testiran u PostgreSQL-u), zod validacija. **Nedostaje** Supabase adapter (vidi dolje) |
+| 7 Pouzdanost | **Djelomično**: server-autoritativno razrješenje, idempotencija, RLS (testiran u PostgreSQL-u), zod validacija. Supabase pohrana za Vercel napisana, ali neprovjerena na živom projektu (vidi dolje) |
 | 8 Završna obrada | **Djelomično**: animacije, PWA manifest + service worker, push priprema. Nije testirano: stvarni push, Lighthouse, native build |
 
 ## Poznata ograničenja (iskreno)
 
-1. **Supabase adapter nije napisan.** Aplikacija danas radi nad `FileStore` (JSON datoteka; jedan proces). Sučelje `Store` (`src/server/store.ts`) je isto, SQL shema i RLS su gotovi i provjereni, ali kod koji engine stanje mapira u te tablice (i Supabase Auth umjesto lokalne prijave) **nije implementiran ni testiran na živom Supabase projektu**. Do tada Vercel produkcija nije moguća jer serverless nema trajni disk. Sljedeći korak: `SupabaseStore` + `@supabase/ssr` auth + Realtime pretplata (zamjena za polling svakih 12 s).
+1. **Pohrana na Vercelu (`SupabaseStore`, `src/server/supabaseStore.ts`) je napisana, ali NIJE provjerena na živom Supabase projektu.** Cijelo stanje je jedan JSON dokument (`dominacija_state`) s optimističnim zaključavanjem preko REST-a; testirano jediničnim testom (`tests/supabaseStore.test.ts`) i E2E-om protiv lokalne imitacije PostgREST-a (`scripts/fake-supabase.mjs` + `tests/e2e/friends.mjs`). Prijava je i dalje vlastita (scrypt + HMAC kolačić), ne Supabase Auth; normalizirane tablice (0001/0002) i Realtime nisu spojeni. Dovoljno za prijatelje/testiranje, ne za velik broj igrača. Upute: `docs/VERCEL.md`.
 2. **Push obavijesti**: SW handler, pretplata i server-pošiljatelj postoje, ali nisu isprobani s VAPID ključevima/`web-push`.
 3. **Faktorski bonusi nema** (frakcije su kozmetika, po specifikaciji). Monetizacija nije implementirana (po specifikaciji, tek nakon jezgre).
 4. **Vojska u savezničkim teritorijima** modelirana je kao darivanje postrojbi (potpora prelazi pod kontrolu saveznika), ne kao zasebne stacionirane jedinice.
@@ -103,7 +103,7 @@ zaključavanje (nacrti se odbacuju; neaktivni → automatska obrana) → protuob
 Vidi `.env.example`. `vercel.json` definira cron koji svakih sat vremena zove `/api/cron/resolve` (zaštićen `CRON_SECRET`) — razrješuje sve kampanje kojima je rok istekao. (Lijeni „tick” također se događa pri svakom dohvatu kampanje.)
 
 ## Sljedeći koraci
-1. `SupabaseStore` + Supabase Auth + Realtime; migracije na živom projektu; E2E protiv njega.
+1. Provjera `SupabaseStore` na živom projektu; kasnije normalizirane tablice + Supabase Auth + Realtime.
 2. Testovi igranja s ljudima, ugađanje balansa (admin može preko JSON nadjačavanja).
 3. Push (VAPID), Lighthouse/performanse na stvarnim srednjim uređajima, WCAG audit.
 4. Javni matchmaking, rijeke/mostovi na karti, kozmetička monetizacija.

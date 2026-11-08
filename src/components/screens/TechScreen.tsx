@@ -4,6 +4,7 @@ import { TECHS, TECH_CATEGORIES, techCost, type TechCategory, type TechDef } fro
 import { Icon, type IconName } from '@/components/art/Icons';
 import { Sheet } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
+import { KingdomTabs } from '@/components/game/KingdomTabs';
 import { OrderComposer } from '@/components/game/OrderComposer';
 import { CostLine } from '@/components/game/common';
 import type { GameState, Resources } from '@/engine/types';
@@ -27,6 +28,7 @@ export function TechScreen() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="tech-screen">
       <div className="max-w-5xl mx-auto p-3 lg:p-5 space-y-3">
+        <KingdomTabs />
         <header className="flex items-center gap-3"><Icon name="flask" size={32} stroke={1.5} className="text-neutral-400" /><div><h1 className="text-2xl text-secondary">Tehnologija</h1><p className="text-sm text-muted font-medium">Istraženo: {v.me.techs.length}/{TECHS.length}. Svako istraživanje košta 3 ZB i resurse — izaberi pametno, u 7 dana ne možeš sve.</p></div></header>
         <div className="scroll-x">{(['all', ...Object.keys(TECH_CATEGORIES)] as Array<TechCategory | 'all'>).map((c) => <button key={c} onClick={() => setCat(c)} className={`pill ${cat === c ? 'pill-on' : ''}`}>{c === 'all' ? 'Sve' : TECH_CATEGORIES[c].name}</button>)}</div>
         <div className={`grid gap-4 ${cat === 'all' ? 'lg:grid-cols-5 sm:grid-cols-2' : 'grid-cols-1 max-w-md mx-auto'}`}>

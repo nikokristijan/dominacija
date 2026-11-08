@@ -39,7 +39,7 @@ try {
   await step('attack-plan', async () => {
     await p.click('[data-testid=planner-next]'); await p.waitForTimeout(250);
     await p.locator('[data-testid=planner] button.chip', { hasText: /^Sve$/ }).first().click(); await shot('11-planner-units');
-    for (let i = 0; i < 4; i++) { await p.click('[data-testid=planner-next]'); await p.waitForTimeout(250); }
+    await p.click('[data-testid=planner-next]'); await p.waitForTimeout(250);
     await p.waitForSelector('[data-testid=order-preview]'); await p.waitForTimeout(400); await shot('12-planner-review');
     await p.click('[data-testid=planner-submit]'); await waitTitle('Tajni cilj');
   });

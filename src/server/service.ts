@@ -66,14 +66,14 @@ function memberOf(c: CampaignRecord, userId: string): Member {
 }
 
 export interface CampaignMeta {
-  id: string; name: string; status: CampaignRecord['status']; isOwner: boolean; inviteCode: string; minPlayers: number; maxPlayers: number; devSimulation: boolean;
+  id: string; name: string; status: CampaignRecord['status']; isOwner: boolean; inviteCode: string; minPlayers: number; maxPlayers: number; devSimulation: boolean; fillBots: boolean;
   schedule: Schedule; clock: CampaignRecord['clock']; serverNow: string; members: Array<{ playerId: string; name: string; faction: FactionId | null; isBot: boolean; isOwner: boolean; isMe: boolean }>;
   myPlayerId: string | null; round: number | null; totalRounds: number; disabledReason?: string; createdAt: string;
 }
 function toMeta(c: CampaignRecord, userId: string): CampaignMeta {
   const me = c.members.find((m) => m.userId === userId) ?? null;
   return {
-    id: c.id, name: c.name, status: c.status, isOwner: c.ownerId === userId, inviteCode: c.inviteCode, minPlayers: c.minPlayers, maxPlayers: c.maxPlayers, devSimulation: c.devSimulation,
+    id: c.id, name: c.name, status: c.status, isOwner: c.ownerId === userId, inviteCode: c.inviteCode, minPlayers: c.minPlayers, maxPlayers: c.maxPlayers, devSimulation: c.devSimulation, fillBots: !!c.fillBots,
     schedule: c.schedule, clock: c.clock, serverNow: nowIso(), myPlayerId: me?.playerId ?? null, round: c.state?.round ?? null, totalRounds: c.state?.totalRounds ?? GAME_CONFIG.campaign.days,
     members: c.members.map((m) => ({ playerId: m.playerId, name: m.name, faction: c.state ? c.state.players[m.playerId]?.faction ?? m.faction : m.faction, isBot: m.isBot, isOwner: m.userId === c.ownerId, isMe: m.userId === userId })),
     disabledReason: c.disabledReason, createdAt: c.createdAt,
@@ -88,7 +88,7 @@ export async function listMyCampaigns(userId: string) {
 }
 
 // ───────────── Stvaranje i ulazak ─────────────
-export async function createCampaign(userId: string, body: { name: string; minPlayers: number; maxPlayers: number; faction?: FactionId; timezone: string; planningStartHour: number; lockHour: number; dev?: { bots: number; planningSeconds: number } }) {
+export async function createCampaign(userId: string, body: { pace?: 'daily' | 'fast'; fillBots?: boolean; name: string; minPlayers: number; maxPlayers: number; faction?: FactionId; timezone: string; planningStartHour: number; lockHour: number; dev?: { bots: number; planningSeconds: number } }) {
   if (body.dev && !devEnabled()) throw new ApiError(403, 'Razvojni način nije dostupan.');
   if (body.minPlayers > body.maxPlayers) throw new ApiError(400, 'Minimalan broj igrača ne može biti veći od maksimalnog.');
   if (body.lockHour <= body.planningStartHour) throw new ApiError(400, 'Sat zaključavanja mora biti nakon početka planiranja.');
@@ -98,10 +98,12 @@ export async function createCampaign(userId: string, body: { name: string; minPl
     const id = newId(db, 'k');
     const c: CampaignRecord = {
       id, name: body.name, ownerId: userId, inviteCode: code(), status: 'waiting', createdAt: nowIso(), startedAt: null, completedAt: null,
-      minPlayers: body.dev ? Math.max(4, body.dev.bots + 1) : body.minPlayers, maxPlayers: body.dev ? Math.max(4, body.dev.bots + 1) : body.maxPlayers, devSimulation: !!body.dev, isPublic: false,
+      minPlayers: body.dev ? Math.max(4, body.dev.bots + 1) : body.minPlayers, maxPlayers: body.dev ? Math.max(4, body.dev.bots + 1) : body.maxPlayers, devSimulation: !!body.dev, isPublic: false, fillBots: !body.dev && !!body.fillBots,
       schedule: body.dev
         ? { mode: 'dev', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: body.dev.planningSeconds, resolveWhenAllReady: true }
-        : { mode: 'daily', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: 90, resolveWhenAllReady: false },
+        : body.pace === 'fast'
+          ? { mode: 'dev', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: 600, resolveWhenAllReady: true }
+          : { mode: 'daily', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: 90, resolveWhenAllReady: false },
       configOverrides: Object.keys(db.balanceOverrides).length ? structuredClone(db.balanceOverrides) : null,
       members: [{ userId, playerId: 'p1', name: prof?.displayName ?? 'Kralj', faction: body.faction ?? prof?.preferredFaction ?? null, isBot: false, joinedAt: nowIso() }],
       clock: { roundOpensAt: null, roundDeadline: null }, version: 1, seed: randomBytes(8).toString('hex'), state: null,
@@ -145,7 +147,16 @@ export async function leaveCampaign(userId: string, id: string) {
   });
 }
 
+const BOT_NAMES = ['Marko', 'Ana', 'Ivan', 'Petra', 'Luka', 'Mia', 'Tomo'];
 function startInternal(db: Db, c: CampaignRecord, by: string) {
+  if (c.fillBots) {
+    const target = Math.min(c.maxPlayers, Math.max(c.members.length, 5));
+    const used = new Set(c.members.map((m) => m.name));
+    while (c.members.length < target) {
+      const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${c.members.length + 1}`; used.add(name);
+      c.members.push({ userId: null, playerId: `p${c.members.length + 1}`, name, faction: null, isBot: true, joinedAt: nowIso() });
+    }
+  }
   if (c.members.length < c.minPlayers) throw new ApiError(409, `Za početak je potrebno barem ${c.minPlayers} igrača.`);
   const ids = c.members.map((m) => m.playerId);
   c.state = createCampaignState({
@@ -176,7 +187,7 @@ function doResolve(db: Db, c: CampaignRecord, now: Date) {
   const st = c.state!;
   const iso = now.toISOString();
   // Botovi (samo razvojne simulacije) planiraju neposredno prije zaključavanja
-  if (c.devSimulation) for (const m of c.members) if (m.isBot && !st.players[m.playerId].ready) botPlan(st, m.playerId, iso);
+  if (c.members.some((m) => m.isBot)) for (const m of c.members) if (m.isBot && !st.players[m.playerId].ready) botPlan(st, m.playerId, iso);
   const before = st.round;
   const next = resolveRound(st, { now: iso });
   c.state = next;

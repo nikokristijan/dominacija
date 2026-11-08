@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { Logo } from '@/components/Logo';
 import { FactionBadge } from '@/components/art/Factions';
 import { Icon } from '@/components/art/Icons';
-import { Sheet, Seg, Field, Empty } from '@/components/ui/kit';
+import { Sheet, Seg, Field, Empty, Expandable } from '@/components/ui/kit';
 
 type Row = CampaignMeta & { myFaction: FactionId | null };
 const STATUS: Record<string, { t: string; c: string }> = { waiting: { t: 'Čeka igrače', c: 'chip-yellow' }, active: { t: 'U tijeku', c: 'chip-good' }, completed: { t: 'Završena', c: '' }, disabled: { t: 'Onemogućena', c: 'chip-bad' } };
@@ -70,14 +70,15 @@ export default function Hub() {
 }
 
 function FactionPick({ value, onChange }: { value: FactionId | null; onChange: (f: FactionId | null) => void }) {
-  return (<div className="grid grid-cols-4 gap-2">
-    <button type="button" onClick={() => onChange(null)} className={`rounded-xl border p-1.5 text-xs font-semibold ${value === null ? 'border-primary bg-primary-100' : 'border-line'}`}>Nasumično</button>
-    {FACTION_IDS.map((f) => <button key={f} type="button" aria-label={FACTIONS[f].name} onClick={() => onChange(f)} className={`rounded-xl border p-1 grid place-items-center ${value === f ? 'border-primary bg-primary-100' : 'border-line'}`}><FactionBadge faction={f} size={36} /></button>)}
+  return (<div className="flex flex-wrap items-center gap-2">
+    <button type="button" onClick={() => onChange(null)} className={`h-11 rounded-xl border px-3 text-xs font-semibold ${value === null ? 'border-primary bg-primary-100' : 'border-line'}`}>Nasumično</button>
+    {FACTION_IDS.map((f) => <button key={f} type="button" aria-label={FACTIONS[f].name} onClick={() => onChange(f)} className={`h-11 w-11 rounded-xl border grid place-items-center ${value === f ? 'border-primary bg-primary-100' : 'border-line'}`}><FactionBadge faction={f} size={30} /></button>)}
   </div>);
 }
 
 function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onClose: () => void; onCreated: (id: string) => void; setErr: (s: string | null) => void }) {
   const [mode, setMode] = useState<'private' | 'dev'>('private');
+  const [pace, setPace] = useState<'fast' | 'daily'>('fast'); const [bots2, setBots2] = useState(true);
   const [name, setName] = useState('');
   const [min, setMin] = useState(4); const [max, setMax] = useState(6);
   const [faction, setFaction] = useState<FactionId | null>(null);
@@ -89,7 +90,7 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
     setBusy(true); setLocalErr(null);
     try {
       const body: Record<string, unknown> = { name: name || (mode === 'dev' ? 'Testna simulacija' : 'Nova kampanja'), faction: faction ?? undefined, timezone: tz, planningStartHour: start, lockHour: lock };
-      if (mode === 'private') { body.minPlayers = min; body.maxPlayers = Math.max(min, max); } else body.dev = { bots, planningSeconds: secs };
+      if (mode === 'private') { body.minPlayers = min; body.maxPlayers = Math.max(min, max); body.pace = pace; body.fillBots = bots2; } else body.dev = { bots, planningSeconds: secs };
       const r = await api<{ campaign: CampaignMeta }>('/api/campaigns', body);
       setErr(null); onCreated(r.campaign.id);
     } catch (e) { setLocalErr(e instanceof Error ? e.message : 'Greška'); } finally { setBusy(false); }
@@ -98,18 +99,25 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
     <Sheet open={open} onClose={onClose} title="Nova kampanja">
       <div className="space-y-4" data-testid="create-sheet">
         <h2 className="text-2xl">Nova kampanja</h2>
-        <Seg value={mode} onChange={setMode} options={[{ value: 'private', label: 'Privatna (prijatelji)' }, { value: 'dev', label: 'Simulacija (botovi)' }]} />
+        {DEV_UI && <Seg value={mode} onChange={setMode} options={[{ value: 'private', label: 'Privatna (prijatelji)' }, { value: 'dev', label: 'Simulacija (botovi)' }]} />}
         <Field label="Naziv"><input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder={mode === 'dev' ? 'Testna simulacija' : 'Npr. Subotnji rat'} data-testid="campaign-name" /></Field>
         {mode === 'private' ? (<>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Min. igrača"><select className="input" value={min} onChange={(e) => setMin(+e.target.value)}>{[4, 5, 6, 7, 8].map((n) => <option key={n}>{n}</option>)}</select></Field>
-            <Field label="Maks. igrača"><select className="input" value={max} onChange={(e) => setMax(+e.target.value)}>{[4, 5, 6, 7, 8].map((n) => <option key={n}>{n}</option>)}</select></Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Početak planiranja"><select className="input" value={start} onChange={(e) => setStart(+e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select></Field>
-            <Field label="Zaključavanje naredbi"><select className="input" value={lock} onChange={(e) => setLock(+e.target.value)}>{Array.from({ length: 23 }, (_, h) => <option key={h + 1} value={h + 1}>{String(h + 1).padStart(2, '0')}:00</option>)}</select></Field>
-          </div>
-          <p className="text-xs text-muted">Vremenska zona: {tz}. Svaki dan: planiranje → zaključavanje → istovremeno razrješenje. 7 dana.</p>
+          <Field label="Tempo igre"><Seg value={pace} onChange={setPace} options={[{ value: 'fast', label: 'Brza (dan ≈ 10 min)' }, { value: 'daily', label: 'Dnevna (dan = 24 h)' }]} /></Field>
+          <p className="text-xs text-muted">{pace === 'fast' ? 'Idealno za večer s prijateljima: 7 dana završi za oko sat vremena, a dan se razriješi čim su svi spremni.' : 'Klasično: svaki dan planiraš, naredbe se zaključavaju u zadani sat i razrješavaju istovremeno. Kampanja traje tjedan dana.'}</p>
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span><span className="block text-sm font-semibold">Popuni prazna mjesta botovima</span><span className="block text-xs text-muted">Možeš igrati i sâm ili s jednim prijateljem. Botovi su jasno označeni.</span></span><input type="checkbox" className="h-5 w-5 accent-[#7138E8]" checked={bots2} onChange={(e) => setBots2(e.target.checked)} data-testid="fill-bots" /></label>
+          <Expandable title="Napredne postavke">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Min. igrača"><select className="input" value={min} onChange={(e) => setMin(+e.target.value)}>{[4, 5, 6, 7, 8].map((n) => <option key={n}>{n}</option>)}</select></Field>
+                <Field label="Maks. igrača"><select className="input" value={max} onChange={(e) => setMax(+e.target.value)}>{[4, 5, 6, 7, 8].map((n) => <option key={n}>{n}</option>)}</select></Field>
+              </div>
+              {pace === 'daily' && <div className="grid grid-cols-2 gap-3">
+                <Field label="Početak planiranja"><select className="input" value={start} onChange={(e) => setStart(+e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select></Field>
+                <Field label="Zaključavanje naredbi"><select className="input" value={lock} onChange={(e) => setLock(+e.target.value)}>{Array.from({ length: 23 }, (_, h) => <option key={h + 1} value={h + 1}>{String(h + 1).padStart(2, '0')}:00</option>)}</select></Field>
+              </div>}
+              <p className="text-xs text-muted">Vremenska zona: {tz}.</p>
+            </div>
+          </Expandable>
         </>) : (<>
           <div className="rounded-xl bg-neutral-50 border border-line p-3 text-sm font-medium text-neutral-700">Razvojna simulacija: protiv tebe igraju botovi (jasno označeni), a runde su ubrzane. Služi za testiranje — ne koristi se za pravu kampanju.</div>
           <div className="grid grid-cols-2 gap-3">
@@ -124,6 +132,8 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
     </Sheet>
   );
 }
+
+const DEV_UI = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
 function JoinSheet({ open, onClose, onJoined }: { open: boolean; onClose: () => void; onJoined: (id: string) => void }) {
   const [code, setCode] = useState(''); const [faction, setFaction] = useState<FactionId | null>(null); const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);

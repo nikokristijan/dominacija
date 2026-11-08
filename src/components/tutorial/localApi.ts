@@ -43,7 +43,7 @@ export function resetTutorial() { state = build(); return state; }
 function meta(s: GameState): CampaignMeta {
   const now = new Date();
   return {
-    id: TUTORIAL_ID, name: 'Vježba', status: 'active', isOwner: true, inviteCode: '', minPlayers: 4, maxPlayers: 4, devSimulation: true,
+    id: TUTORIAL_ID, name: 'Vježba', status: 'active', isOwner: true, inviteCode: '', minPlayers: 4, maxPlayers: 4, devSimulation: true, fillBots: false,
     schedule: { mode: 'dev', timezone: 'Europe/Zagreb', planningStartHour: 8, lockHour: 20, devPlanningSeconds: 3600, resolveWhenAllReady: false },
     clock: { roundOpensAt: now.toISOString(), roundDeadline: new Date(now.getTime() + 3600_000 * 12).toISOString() }, serverNow: now.toISOString(),
     members: Object.values(s.players).map((p) => ({ playerId: p.id, name: p.name, faction: p.faction, isBot: p.isBot, isOwner: p.id === 'p1', isMe: p.id === 'p1' })),

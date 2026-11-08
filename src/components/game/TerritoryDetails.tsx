@@ -38,7 +38,9 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
   const mine = t.owner === v.me.id;
   const owner = t.owner ? v.players[t.owner] : null;
   const region = v.map.regions.find((r) => r.id === t.regionId);
-  const [tab, setTab] = useState<'pregled' | 'razvoj' | 'vojska' | 'obrana' | 'vise' | 'intel'>('pregled');
+  const [moreOpen, setMoreOpen] = useState(false);
+  const tourActive = g.tourTargets.length > 0;
+  const [tab, setTab] = useState<'pregled' | 'detalji' | 'intel'>('pregled');
   const intelReports = v.intel.filter((r) => r.territoryId === t.id).sort((a, b) => b.round - a.round);
   const adj = adjacentOwned(v, t.id);
   const planning = v.phase === 'planning' && !v.me.ready;
@@ -47,7 +49,7 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
   const relCol = mine ? REL.me : owner ? (owner.relation === 'ally' || owner.relation === 'pact' ? REL.ally : REL.enemy) : REL.neutral;
   const armyTotal = mine ? unitTotal(t.garrison ?? {}) : t.armyEstimate?.exact ? unitTotal(t.armyEstimate.exact) : null;
   const tabs = mine
-    ? [{ value: 'pregled', label: 'Pregled' }, { value: 'razvoj', label: 'Razvoj' }, { value: 'vojska', label: 'Vojska' }, { value: 'obrana', label: 'Obrana' }, { value: 'vise', label: 'Više' }]
+    ? [{ value: 'pregled', label: 'Pregled' }, { value: 'detalji', label: 'Detalji' }]
     : [{ value: 'pregled', label: 'Pregled' }, { value: 'intel', label: 'Obavještajno' }];
   const defTotal = Math.round(((t.defenseLevel ?? 0) * cfg.defense.levelBonus + (t.isCapital ? cfg.defense.capitalBonus : 0) + (t.building === 'fortress' ? cfg.defense.fortressBonusPerLevel * (t.buildingLevel ?? 0) : 0)) * 100);
 
@@ -85,8 +87,13 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
               {mine ? (<>
                 <ActionRow icon="layers" title="Razvoj" sub="Unaprijedi proizvodnju i infrastrukturu" onClick={() => onAction('build', t.id)} disabled={t.isCapital} testId="act-Gradi" tour="act-build" />
                 <ActionRow icon="users" title="Novači" sub="Nove postrojbe stižu početkom iduće runde" onClick={() => onAction('recruit', t.id)} testId="act-Novači" tour="act-recruit" />
+                <details className="group" open={moreOpen || tourActive} onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}>
+                  <summary className="list-none cursor-pointer text-sm font-semibold text-muted hover:text-ink py-1.5 flex items-center gap-1.5"><Icon name="down" size={14} className="transition-transform group-open:rotate-180" />Više akcija</summary>
+                  <div className="space-y-2 pt-1">
                 <ActionRow icon="shield" title="Obrana" sub="Utvrdi teritorij ili pošalji pojačanje" onClick={() => onAction('defend', t.id)} testId="act-Obrana" />
                 <ActionRow icon="target" title="Uvjetna naredba" sub="AKO se dogodi okidač, TADA automatska radnja" onClick={() => onAction('conditional', t.id)} testId="act-Uvjetna naredba" tour="act-cond" />
+                  </div>
+                </details>
               </>) : (<>
                 {canAttack && <ActionRow icon="swords" title="Napadni" sub="Planiraj vojnu operaciju" onClick={() => onOperation(t.id)} testId="attack-btn" tour="act-attack" />}
                 {owner && <ActionRow icon="search" title="Istraži" sub="Prikupi informacije o susjedima" onClick={() => onAction('espionage', t.id)} testId="act-Špijuniraj" tour="act-spy" />}
@@ -100,7 +107,7 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
         </div>
       )}
 
-      {tab === 'razvoj' && mine && (
+      {tab === 'detalji' && mine && (<>
         <div className="space-y-4">
           <div className="flex items-center justify-between text-sm"><span className="text-muted">Zgrada</span><b>{t.building ? `${cfg.buildings[t.building].name}${t.building !== 'capital' ? ` · razina ${t.buildingLevel}/${cfg.buildings[t.building].maxLevel}` : ''}` : 'Nema'}</b></div>
           {t.construction && <div className="chip chip-yellow">U gradnji: {cfg.buildings[t.construction.building].name} — gotovo početkom iduće runde</div>}
@@ -113,34 +120,28 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
             <div className="flex justify-between text-sm"><span className="text-muted">Stabilnost</span><b className={(t.stability ?? 0) < 40 ? 'text-bad' : ''}>{t.stability}</b></div><Progress value={t.stability ?? 0} color={(t.stability ?? 0) < 40 ? 'bg-bad' : 'bg-primary'} /></div>
           {planning && !t.isCapital && <button className="btn btn-yellow w-full" onClick={() => onAction('build', t.id)}>{t.building ? 'Nadogradi zgradu' : 'Izgradi zgradu'}</button>}
         </div>
-      )}
 
-      {tab === 'vojska' && mine && (
-        <div className="space-y-3">
+              <div className="space-y-3 border-t border-line pt-4"><div className="label">Vojska</div>
           {UNIT_TYPES.filter((u) => (t.garrison?.[u] ?? 0) > 0).map((u) => (
             <div key={u} className="flex items-center gap-3 border-b border-line pb-2.5"><UnitIcon unit={u} size={26} /><div className="flex-1"><div className="font-semibold">{cfg.units[u].name}</div><div className="text-xs text-muted">napad {cfg.units[u].attack} · obrana {cfg.units[u].defense} · održavanje {cfg.units[u].upkeep.gold} zlata</div></div><b className="text-lg">{t.garrison?.[u]}</b></div>))}
           {!UNIT_TYPES.some((u) => (t.garrison?.[u] ?? 0) > 0) && <p className="text-sm text-muted">Nema postrojbi — teritorij je neobranjen.</p>}
           {planning && <div className="grid grid-cols-2 gap-2"><button className="btn btn-yellow" onClick={() => onAction('recruit', t.id)}>Novači</button><button className="btn btn-ghost" onClick={() => onAction('defend', t.id)}>Pojačanje</button></div>}
         </div>
-      )}
 
-      {tab === 'obrana' && mine && (
-        <div className="space-y-4">
+              <div className="space-y-4 border-t border-line pt-4"><div className="label">Obrana</div>
           <div><div className="flex justify-between text-sm mb-1.5"><span className="text-muted">Razina obrane</span><b>{t.defenseLevel} / {cfg.defense.maxDefenseLevel}</b></div><Progress value={t.defenseLevel ?? 0} max={cfg.defense.maxDefenseLevel} /></div>
           <p className="text-sm text-neutral-600">Ukupni obrambeni bonus (razina, utvrde, glavni grad): <b>+{defTotal}%</b>. Utvrđivanje daje dodatnih +{Math.round(cfg.defense.entrenchBonus * 100)}% samo ove runde.</p>
           {t.effects?.length ? <div className="flex flex-wrap gap-1.5">{t.effects.map((e, i) => <span key={i} className="chip chip-warn">{e.kind === 'entrenched' ? 'utvrđeno' : e.kind === 'sabotaged_production' ? 'sabotirano' : 'kuga'}</span>)}</div> : null}
           {planning && <div className="grid grid-cols-1 gap-2"><button className="btn btn-yellow" onClick={() => onAction('defend', t.id)}>Obrambena operacija</button><button className="btn btn-ghost" onClick={() => onAction('conditional', t.id)}>Uvjetna obrana</button></div>}
         </div>
-      )}
 
-      {tab === 'vise' && mine && (
-        <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-sm border-t border-line pt-4"><div className="label">Ostalo</div>
           <div className="flex justify-between"><span className="text-muted">Važnost</span><b>{t.importance}/5</b></div>
           <div className="flex justify-between"><span className="text-muted">Vid</span><b>potpun</b></div>
           <div className="flex justify-between"><span className="text-muted">Opskrba</span><b className={t.supplied === false ? 'text-bad' : 'text-good'}>{t.supplied === false ? 'odsječen' : 'povezan'}</b></div>
           {t.siegeProgress ? <div className="flex justify-between"><span className="text-muted">Opsada</span><b className="text-bad">razina {t.siegeProgress}</b></div> : null}
         </div>
-      )}
+      </>)}
 
       {tab === 'intel' && !mine && (
         <div className="space-y-3">

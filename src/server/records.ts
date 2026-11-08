@@ -16,6 +16,8 @@ export interface Schedule { mode: 'daily' | 'dev'; timezone: string; planningSta
 export interface CampaignRecord {
   id: string; name: string; ownerId: string; inviteCode: string; status: CampaignStatus; createdAt: string; startedAt: string | null; completedAt: string | null;
   minPlayers: number; maxPlayers: number; devSimulation: boolean; isPublic: boolean;
+  /** Pri pokretanju prazna mjesta popunjavaju botovi (jasno označeni). */
+  fillBots?: boolean;
   schedule: Schedule; configOverrides: DeepPartial<GameConfig> | null;
   members: Member[];
   clock: { roundOpensAt: string | null; roundDeadline: string | null };

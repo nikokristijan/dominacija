@@ -18,7 +18,7 @@ export default async function Welcome() {
             <Link href="/k/tutorial/karta" className="btn btn-ghost min-h-12 px-8 text-base" data-testid="tutorial-link">Nauči igrati (vodič)</Link>
           </div>
         </div>
-        <div className="relative w-full flex-1 min-h-[22rem] lg:min-h-[34rem] lg:h-[calc(100dvh-8rem)]"><HeroMap className="absolute inset-0" /></div>
+        <div className="relative w-full flex-1 min-h-[22rem] lg:min-h-[34rem] lg:h-[calc(100dvh-8rem)] min-w-0"><HeroMap className="absolute inset-0 lg:scale-[1.22] origin-center" /></div>
       </section>
     </main>
   );

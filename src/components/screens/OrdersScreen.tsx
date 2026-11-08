@@ -11,7 +11,9 @@ import { CostLine } from '@/components/game/common';
 import { describeOrder } from '@/components/game/orderText';
 import { ResourceIcon } from '@/components/art/Resources';
 
-const TYPES: OrderType[] = ['recruit', 'build', 'trade', 'defend', 'espionage', 'diplomacy', 'sabotage', 'research'];
+const MAIN: OrderType[] = ['recruit', 'build', 'research'];
+const MORE: OrderType[] = ['defend', 'espionage', 'diplomacy', 'trade', 'sabotage'];
+const short = (t: OrderType) => ORDER_LABELS[t].name.replace('Trgovačka ekspedicija', 'Trgovina').replace('Obrambena operacija', 'Obrana').replace('Diplomatska misija', 'Diplomacija');
 
 export function OrdersScreen() {
   const g = useGame();
@@ -44,16 +46,25 @@ export function OrdersScreen() {
           <p className="text-xs font-semibold text-muted">Naredbe su privatne do razrješenja. Resursi se rezerviraju pri predaji, a nacrti ne troše ništa. Predane naredbe možeš mijenjati do roka ili dok ne označiš „spremno”.</p>
         </section>
 
-        {editable && (<section>
+        {editable && (<section className="space-y-2">
           <SectionTitle icon="plus">Nova naredba</SectionTitle>
-          <div className="grid grid-cols-4 gap-2">
-            <Link href={`/k/${g.id}/karta?op=`} className="col-span-4 btn btn-ghost" data-testid="new-attack"><Icon name="sword" size={20} />Vojni napad — planiraj na karti</Link>
-            {TYPES.map((t) => (
+          <Link href={`/k/${g.id}/karta?op=`} className="flex items-center gap-3 rounded-xl bg-ink text-white px-4 min-h-14" data-testid="new-attack"><Icon name="sword" size={22} /><span className="flex-1"><span className="block font-semibold leading-tight">Napad</span><span className="block text-xs text-white/70">Isplaniraj vojnu operaciju na karti</span></span><span className="chip !bg-white/15 !text-white">3 ZB</span></Link>
+          <div className="grid grid-cols-3 gap-2">
+            {MAIN.map((t) => (
               <button key={t} onClick={() => setComposer({ type: t })} className="rounded-xl bg-white border border-line min-h-20 flex flex-col items-center justify-center gap-1 text-neutral-700 hover:bg-neutral-50" data-testid={`new-${t}`}>
-                <Icon name={ORDER_LABELS[t].icon} size={26} /><span className="text-[11px] font-semibold text-ink text-center leading-tight px-0.5">{ORDER_LABELS[t].name.replace('Trgovačka ekspedicija', 'Trgovina').replace('Obrambena operacija', 'Obrana').replace('Diplomatska misija', 'Diplomacija')}</span><span className="chip !py-0">{v.config.orderCosts[t]} ZB</span>
+                <Icon name={ORDER_LABELS[t].icon} size={24} /><span className="text-xs font-semibold text-ink leading-tight">{short(t)}</span><span className="chip">{v.config.orderCosts[t]} ZB</span>
               </button>))}
-            {v.me.status === 'resistance' && <button onClick={() => setComposer({ type: 'resistance' })} className="col-span-4 btn btn-purple" data-testid="new-resistance"><Icon name="flag" size={20} />Misija Otpora</button>}
           </div>
+          <details className="group" open={v.me.status === 'resistance' ? true : undefined}>
+            <summary className="list-none cursor-pointer text-sm font-semibold text-muted hover:text-ink py-1.5 flex items-center gap-1.5" data-testid="more-orders"><Icon name="down" size={14} className="transition-transform group-open:rotate-180" />Više naredbi</summary>
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {MORE.map((t) => (
+                <button key={t} onClick={() => setComposer({ type: t })} className="rounded-xl bg-white border border-line min-h-16 flex flex-col items-center justify-center gap-0.5 text-neutral-700 hover:bg-neutral-50" data-testid={`new-${t}`}>
+                  <Icon name={ORDER_LABELS[t].icon} size={20} /><span className="text-xs font-semibold text-ink leading-tight">{short(t)}</span><span className="text-[10px] text-muted">{v.config.orderCosts[t]} ZB</span>
+                </button>))}
+              {v.me.status === 'resistance' && <button onClick={() => setComposer({ type: 'resistance' })} className="col-span-3 btn btn-purple" data-testid="new-resistance"><Icon name="flag" size={20} />Misija Otpora</button>}
+            </div>
+          </details>
         </section>)}
 
         <section className="space-y-2">
@@ -68,7 +79,7 @@ export function OrdersScreen() {
           {drafts.map((o) => <OrderRow key={o.id} o={o} i={0} n={1} draft editable={editable} busy={busy} onEdit={() => o.type !== 'attack' && setComposer({ type: o.type, order: o })} onRemove={() => post({ action: 'remove', orderId: o.id }, 'Nacrt uklonjen.')} onSubmit={() => post({ action: 'submit', orderId: o.id }, 'Naredba predana.')} />)}
         </section>)}
 
-        <section className="space-y-2">
+        <details className="group" open={conds.length > 0}><summary className="list-none cursor-pointer text-sm font-semibold text-muted hover:text-ink py-1.5 flex items-center gap-1.5" data-testid="advanced"><Icon name="down" size={14} className="transition-transform group-open:rotate-180" />Napredno: uvjetne naredbe ({conds.length})</summary><section className="space-y-2 pt-1">
           <SectionTitle icon="target" right={editable && conds.length < v.config.campaign.maxConditionalOrdersPerRound ? <button className="chip" onClick={() => setCond(true)} data-testid="new-conditional">+ Uvjetna</button> : <span className="chip">{conds.length}/{v.config.campaign.maxConditionalOrdersPerRound}</span>}>Uvjetne naredbe</SectionTitle>
           {conds.length === 0 && <div className="card-flat text-sm text-muted font-medium">AKO se dogodi okidač, TADA se automatski izvršava radnja. Npr. „AKO mi napadnu glavni grad, TADA premjesti rezerve”.</div>}
           {conds.map((c) => (
@@ -77,7 +88,7 @@ export function OrdersScreen() {
               <div className="flex-1 min-w-0 text-sm"><div className="font-semibold">AKO: {TRIGGER_LABEL[c.trigger.type]}{c.trigger.territoryId ? ` (${v.territories[c.trigger.territoryId]?.name})` : ''}{c.trigger.playerId ? ` (${v.players[c.trigger.playerId]?.name})` : ''}</div><div className="text-muted font-medium">TADA: {ACTION_LABEL[c.action.type]} · prioritet {c.priority} · do runde {c.expiresRound}</div></div>
               {editable && <button className="h-10 w-10 grid place-items-center rounded-xl text-bad active:bg-red-50" aria-label="Ukloni" onClick={async () => { try { await g.act(`/api/campaigns/${g.id}/conditional`, { action: 'remove', id: c.id }); } catch { /* toast */ } }}><Icon name="close" /></button>}
             </div>))}
-        </section>
+        </section></details>
 
         {lastResolved.length > 0 && (
           <section className="space-y-2"><SectionTitle icon="report">Ishod prošle runde</SectionTitle>

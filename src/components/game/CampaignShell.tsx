@@ -20,12 +20,11 @@ import { installTutorialApi, uninstallTutorialApi } from '@/components/tutorial/
 const NAV: Array<{ href: string; label: string; icon: IconName; key: string; mobile?: boolean }> = [
   { href: '', label: 'Početna', icon: 'home', key: 'home', mobile: true },
   { href: '/karta', label: 'Karta', icon: 'map', key: 'map', mobile: true },
-  { href: '/naredbe', label: 'Operacije', icon: 'swords', key: 'orders', mobile: true },
-  { href: '/kraljevstvo', label: 'Razvoj', icon: 'layers', key: 'dev' },
+  { href: '/naredbe', label: 'Naredbe', icon: 'swords', key: 'orders', mobile: true },
   { href: '/diplomacija', label: 'Diplomacija', icon: 'handshake', key: 'dip', mobile: true },
-  { href: '/tehnologija', label: 'Istraživanje', icon: 'flask', key: 'tech' },
-  { href: '/ljestvica', label: 'Poredak', icon: 'trophy', key: 'rank' },
+  { href: '/kraljevstvo', label: 'Kraljevstvo', icon: 'layers', key: 'dev' },
 ];
+const KINGDOM_PATHS = ['/kraljevstvo', '/tehnologija', '/ljestvica'];
 
 export function CampaignShell({ id, children }: { id: string; children: React.ReactNode }) {
   // Vodič: lokalni engine u pregledniku umjesto servera (instalira se prije prvog dohvata stanja)
@@ -64,7 +63,8 @@ function Splash({ text, error }: { text: string; error?: boolean }) {
 function isActive(path: string, base: string, href: string) {
   if (href === '') return path === base;
   if (href === '/naredbe') return path.startsWith(base + '/naredbe') || path.startsWith(base + '/operacija');
-  if (href === '/vise') return ['/vise', '/izvjestaji', '/profil', '/obavijesti', '/rezultati'].some((p) => path.startsWith(base + p));
+  if (href === '/vise') return ['/vise', '/izvjestaji', '/profil', '/obavijesti', '/rezultati', ...KINGDOM_PATHS].some((p) => path.startsWith(base + p));
+  if (href === '/kraljevstvo') return KINGDOM_PATHS.some((p) => path.startsWith(base + p));
   return path.startsWith(base + href);
 }
 
@@ -173,7 +173,7 @@ function Sidebar({ id }: { id: string }) {
       <div className="mt-auto p-3 relative">
         {menu && (
           <div className="absolute bottom-[calc(100%-0.25rem)] left-3 right-3 bg-white rounded-xl float-shadow p-1.5 space-y-0.5 z-20">
-            {[['/izvjestaji', 'Izvještaji', 'report'], ['/obavijesti', 'Obavijesti', 'bell'], ['/profil', 'Profil i postavke', 'user']].map(([h, l, i]) => <Link key={h} href={base + h} onClick={() => setMenu(false)} className="flex items-center gap-3 rounded-lg px-3 min-h-10 text-sm font-medium text-neutral-700 hover:bg-neutral-50"><Icon name={i as IconName} size={18} />{l}</Link>)}
+            {[['/ljestvica', 'Poredak', 'trophy'], ['/izvjestaji', 'Izvještaji', 'report'], ['/obavijesti', 'Obavijesti', 'bell'], ['/profil', 'Profil i postavke', 'user']].map(([h, l, i]) => <Link key={h} href={base + h} onClick={() => setMenu(false)} className="flex items-center gap-3 rounded-lg px-3 min-h-10 text-sm font-medium text-neutral-700 hover:bg-neutral-50"><Icon name={i as IconName} size={18} />{l}</Link>)}
             <Link href="/igra" className="flex items-center gap-3 rounded-lg px-3 min-h-10 text-sm font-medium text-neutral-700 hover:bg-neutral-50"><Icon name="list" size={18} />Sve kampanje</Link>
             <button onClick={async () => { await api('/api/auth/logout', {}); router.push('/'); }} className="w-full flex items-center gap-3 rounded-lg px-3 min-h-10 text-sm font-medium text-neutral-700 hover:bg-neutral-50"><Icon name="logout" size={18} />Odjava</button>
           </div>)}

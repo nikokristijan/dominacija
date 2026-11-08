@@ -45,14 +45,14 @@ await step('recruit-order', async () => {
 });
 await step('orders-screen', async () => { await p.keyboard.press('Escape'); await p.goto(campaignUrl + '/naredbe'); await p.waitForSelector('[data-testid=orders-screen]'); await p.waitForSelector('[data-testid=order-row]'); await shot('07-orders'); });
 await step('draft+edit+remove', async () => {
-  await p.click('[data-testid=new-trade]'); await p.waitForSelector('[data-testid=composer-trade]'); await p.waitForSelector('[data-testid=order-preview]');
+  await p.click('[data-testid=more-orders]'); await p.click('[data-testid=new-trade]'); await p.waitForSelector('[data-testid=composer-trade]'); await p.waitForSelector('[data-testid=order-preview]');
   await p.click('[data-testid=save-draft]'); await p.waitForSelector('text=Nacrt spremljen');
   await p.waitForSelector('[data-testid=submit-draft]'); await shot('08-draft');
   await p.click('[data-testid=submit-draft]'); await p.waitForSelector('text=Naredba predana');
   await p.locator('[data-testid=remove-order]').last().click(); await p.waitForSelector('text=Naredba uklonjena');
 });
 await step('conditional', async () => {
-  await p.click('[data-testid=new-conditional]'); await p.waitForSelector('[data-testid=conditional-composer]'); await p.click('[data-testid=cond-submit]'); await p.waitForSelector('text=Uvjetna naredba spremljena'); await p.waitForSelector('[data-testid=cond-row]'); await shot('09-conditional');
+  await p.click('[data-testid=advanced]'); await p.click('[data-testid=new-conditional]'); await p.waitForSelector('[data-testid=conditional-composer]'); await p.click('[data-testid=cond-submit]'); await p.waitForSelector('text=Uvjetna naredba spremljena'); await p.waitForSelector('[data-testid=cond-row]'); await shot('09-conditional');
 });
 await step('planner', async () => {
   await p.goto(campaignUrl + '/karta');
@@ -64,7 +64,7 @@ await step('planner', async () => {
   await p.click('[data-testid=attack-btn]'); await p.waitForSelector('[data-testid=planner]'); await p.waitForTimeout(500); await shot('10-planner-1');
   await p.click('[data-testid=planner-next]'); await p.waitForTimeout(300);
   await p.locator('[data-testid=planner] button.chip', { hasText: /^Sve$/ }).first().click(); await shot('11-planner-2');
-  for (let i = 0; i < 4; i++) { await p.click('[data-testid=planner-next]'); await p.waitForTimeout(250); }
+  await p.click('[data-testid=planner-next]'); await p.waitForTimeout(250);
   await p.waitForSelector('[data-testid=order-preview]'); await shot('12-planner-review');
   await p.click('[data-testid=planner-submit]'); await p.waitForSelector('text=Napad predan'); await p.goto(campaignUrl + '/naredbe'); await p.waitForSelector('[data-testid=order-row]');
 });

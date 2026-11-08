@@ -3,6 +3,7 @@ import { FACTIONS } from '@/engine/config';
 import { FactionBadge } from '@/components/art/Factions';
 import { SectionTitle } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
+import { KingdomTabs } from '@/components/game/KingdomTabs';
 
 export function RankingScreen() {
   const g = useGame();
@@ -16,7 +17,8 @@ export function RankingScreen() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="ranking-screen">
       <div className="max-w-3xl mx-auto p-3 lg:p-5 space-y-4">
-        <h1 className="text-2xl text-secondary">Ljestvica</h1>
+        <KingdomTabs />
+        <h1 className="text-2xl text-secondary">Poredak</h1>
         <section className="space-y-2">
           {v.ranking.map((r, i) => { const p = v.players[r.playerId]; return (
             <div key={r.playerId} className={`card-flat flex items-center gap-3 ${r.playerId === v.me.id ? 'border-accent-600 bg-yellow-50/60' : ''}`}>

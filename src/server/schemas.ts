@@ -67,6 +67,8 @@ export const diplomacyAction = z.discriminatedUnion('action', [
 export const createCampaignBody = z.object({
   name: z.string().trim().min(3).max(40), minPlayers: z.number().int().min(4).max(8).default(4), maxPlayers: z.number().int().min(4).max(8).default(6),
   faction: z.enum(['red', 'blue', 'purple', 'green', 'yellow', 'turquoise', 'pink', 'grey']).optional(),
+  /** brza: dan traje 10 min (ili čim su svi spremni); dnevna: jedan dan = 24 h u zadanim satima */
+  pace: z.enum(['daily', 'fast']).default('daily'), fillBots: z.boolean().default(false),
   timezone: z.string().max(60).default('Europe/Zagreb'), planningStartHour: z.number().int().min(0).max(23).default(8), lockHour: z.number().int().min(1).max(23).default(20),
   dev: z.object({ bots: z.number().int().min(3).max(7), planningSeconds: z.number().int().min(15).max(3600).default(90) }).optional(),
 });
