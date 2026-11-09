@@ -215,6 +215,8 @@ export type NotificationKind = 'invitation' | 'alliance_offer' | 'trade_offer' |
 export interface ScoreBreakdown {
   playerId: PlayerId; territories: number; cities: number; enemyCapitals: number; regions: number; objective: number; military: number;
   total: number; territoryCount: number; cityCount: number; economicStrength: number; diplomaticScore: number;
+  /** Bodovi za gospodarstvo i bruto dnevni prihod (zlato-ekvivalent) na temelju kojeg su dodijeljeni. */
+  economy: number; income: number;
   militaryAchievements: string[]; regionsControlled: string[]; objectiveCompleted: boolean; objectiveTitle?: string;
 }
 

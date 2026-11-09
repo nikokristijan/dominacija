@@ -654,6 +654,7 @@ function captureTerritory(c: Ctx, tid: TerritoryId, winner: PlayerId, prevOwner:
   t.defenseLevel = Math.max(0, t.defenseLevel - 1);
   if (t.building === 'fortress' || t.building === 'barracks') { t.buildingLevel -= 1; if (t.buildingLevel <= 0) { t.building = null; t.buildingLevel = 0; } }
   const w = s.players[winner];
+  if (!prevOwner && !t.camp) { const g0 = Math.round(cfg.combat.neutralPlunderBase + cfg.combat.neutralPlunderPerImportance * t.importance); if (g0 > 0) { gain(c, winner, { gold: g0 }); emit(s, R, 'economy', `${t.name}: domaći su predali zalihe — plijen ${g0} zlata.`, [winner], 'good', { refs: { territoryId: tid } }); } }
   if (!prevOwner && t.camp) {
     const camp = t.camp; t.camp = null;
     gain(c, winner, camp.reward);

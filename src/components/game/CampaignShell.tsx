@@ -150,11 +150,11 @@ function TopBar({ id }: { id: string }) {
           <div className="leading-tight"><div className="font-semibold text-[15px]">Dan {v.round} / {v.totalRounds}</div><div className={`text-xs ${rem !== null && rem < 3600_000 && !locked ? 'text-primary font-semibold' : 'text-muted'}`} data-testid="remaining">{id === 'tutorial' ? 'Vodič — vježba' : phaseText}</div></div>
         </div>
         <div className="hidden lg:flex items-center gap-4 xl:gap-6 min-w-0" data-tour="resources">
-          <ResPill name="food" value={v.me.resources.food} delta={net.food} label="Hrana" />
-          <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} label="Zlato" />
-          <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} label="Željezo" />
-          <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} label="Drvo" />
-          <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} label="Utjecaj" />
+          <ResPill name="food" value={v.me.resources.food} delta={net.food} runway={net.food < -0.05 ? v.me.resources.food / -net.food : null} label="Hrana" />
+          <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} runway={net.gold < -0.05 ? v.me.resources.gold / -net.gold : null} label="Zlato" />
+          <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} runway={net.iron < -0.05 ? v.me.resources.iron / -net.iron : null} label="Željezo" />
+          <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} runway={net.wood < -0.05 ? v.me.resources.wood / -net.wood : null} label="Drvo" />
+          <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} runway={net.influence < -0.05 ? v.me.resources.influence / -net.influence : null} label="Utjecaj" />
           <div className="hidden 2xl:flex items-center gap-2 shrink-0" title="Bodovi"><Icon name="trophy" size={20} className="text-neutral-500" /><span className="text-lg font-semibold">{myScore}</span></div>
         </div>
         <div className="ml-auto flex items-center gap-1 shrink-0">
@@ -167,11 +167,11 @@ function TopBar({ id }: { id: string }) {
         </div>
       </div>
       <div className="lg:hidden scroll-x px-3 pb-2 gap-4">
-        <ResPill name="food" value={v.me.resources.food} delta={net.food} compact />
-        <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} compact />
-        <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} compact />
-        <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} compact />
-        <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} compact />
+        <ResPill name="food" value={v.me.resources.food} delta={net.food} runway={net.food < -0.05 ? v.me.resources.food / -net.food : null} compact />
+        <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} runway={net.gold < -0.05 ? v.me.resources.gold / -net.gold : null} compact />
+        <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} runway={net.iron < -0.05 ? v.me.resources.iron / -net.iron : null} compact />
+        <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} runway={net.wood < -0.05 ? v.me.resources.wood / -net.wood : null} compact />
+        <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} runway={net.influence < -0.05 ? v.me.resources.influence / -net.influence : null} compact />
         <span className="flex items-center gap-1 text-sm font-semibold text-neutral-600 shrink-0"><ResourceIcon name="stability" size={16} />{stab}</span>
       </div>
       <span className="hidden">{meta.name}</span>

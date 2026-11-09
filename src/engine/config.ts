@@ -17,7 +17,7 @@ export const UNIT_TYPES: UnitType[] = ['infantry', 'archers', 'spearmen', 'knigh
 const unitDefs = {
   infantry: {
     name: 'Pješadija', attack: 4, defense: 5, movement: 1,
-    cost: { gold: 8, food: 2, iron: 2, wood: 0, influence: 0 },
+    cost: { gold: 7, food: 2, iron: 1, wood: 0, influence: 0 },
     upkeep: { gold: 0.4, food: 0.4 },
     requiresBuilding: null as BuildingType | null,
     popCost: 1,
@@ -80,22 +80,22 @@ const terrainDefs: Record<TerrainType, {
   name: string; defense: number; passable: boolean;
   production: Partial<Record<ResourceType, number>>; supplyCost: number; maxPopulation: number; nativeGarrison: number;
 }> = {
-  plains: { name: 'Ravnica', defense: 1.0, passable: true, production: { food: 2, gold: 2 }, supplyCost: 1, maxPopulation: 160, nativeGarrison: 3 },
-  forest: { name: 'Šuma', defense: 1.15, passable: true, production: { wood: 6 }, supplyCost: 1.2, maxPopulation: 90, nativeGarrison: 4 },
-  mountains: { name: 'Planina', defense: 1.35, passable: true, production: { iron: 1 }, supplyCost: 1.5, maxPopulation: 70, nativeGarrison: 6 },
-  desert: { name: 'Pustinja', defense: 1.0, passable: true, production: { gold: 3 }, supplyCost: 1.4, maxPopulation: 60, nativeGarrison: 3 },
+  plains: { name: 'Ravnica', defense: 1.0, passable: true, production: { food: 2, gold: 2 }, supplyCost: 1, maxPopulation: 160, nativeGarrison: 2 },
+  forest: { name: 'Šuma', defense: 1.15, passable: true, production: { wood: 6 }, supplyCost: 1.2, maxPopulation: 90, nativeGarrison: 3 },
+  mountains: { name: 'Planina', defense: 1.35, passable: true, production: { iron: 1 }, supplyCost: 1.5, maxPopulation: 70, nativeGarrison: 4 },
+  desert: { name: 'Pustinja', defense: 1.0, passable: true, production: { gold: 3 }, supplyCost: 1.4, maxPopulation: 60, nativeGarrison: 2 },
   water: { name: 'Voda', defense: 1.0, passable: false, production: {}, supplyCost: 99, maxPopulation: 0, nativeGarrison: 0 },
-  special: { name: 'Poseban resurs', defense: 1.1, passable: true, production: { influence: 3, gold: 4 }, supplyCost: 1.2, maxPopulation: 100, nativeGarrison: 7 },
+  special: { name: 'Poseban resurs', defense: 1.1, passable: true, production: { influence: 3, gold: 4 }, supplyCost: 1.2, maxPopulation: 100, nativeGarrison: 5 },
 };
 
 const buildingDefs: Record<BuildingType, {
   name: string; cost: Partial<Record<ResourceType, number>>; allowedTerrain: TerrainType[];
   production: Partial<Record<ResourceType, number>>; maxLevel: number; description: string; points: number;
 }> = {
-  capital: { name: 'Glavni grad', cost: {}, allowedTerrain: ['plains'], production: { gold: 12, food: 4, influence: 2 }, maxLevel: 1, description: 'Srce kraljevstva. Gubitak donosi Otpor.', points: 4 },
-  farm: { name: 'Farma', cost: { gold: 20, wood: 15 }, allowedTerrain: ['plains', 'forest', 'desert'], production: { food: 10 }, maxLevel: 3, description: 'Proizvodi hranu.', points: 0 },
-  mine: { name: 'Rudnik', cost: { gold: 25, wood: 20 }, allowedTerrain: ['mountains', 'special', 'desert'], production: { iron: 6 }, maxLevel: 3, description: 'Proizvodi željezo.', points: 0 },
-  city: { name: 'Grad', cost: { gold: 40, wood: 30, iron: 5 }, allowedTerrain: ['plains', 'forest', 'desert', 'special'], production: { gold: 9, influence: 0.5 }, maxLevel: 3, description: 'Proizvodi zlato, povećava stanovništvo. 4 boda.', points: 4 },
+  capital: { name: 'Glavni grad', cost: {}, allowedTerrain: ['plains'], production: { gold: 16, food: 6, influence: 2 }, maxLevel: 1, description: 'Srce kraljevstva. Gubitak donosi Otpor.', points: 4 },
+  farm: { name: 'Farma', cost: { gold: 15, wood: 10 }, allowedTerrain: ['plains', 'forest', 'desert'], production: { food: 14 }, maxLevel: 3, description: 'Proizvodi hranu.', points: 0 },
+  mine: { name: 'Rudnik', cost: { gold: 20, wood: 15 }, allowedTerrain: ['mountains', 'special', 'desert'], production: { iron: 10 }, maxLevel: 3, description: 'Proizvodi željezo.', points: 0 },
+  city: { name: 'Grad', cost: { gold: 30, wood: 22, iron: 4 }, allowedTerrain: ['plains', 'forest', 'desert', 'special'], production: { gold: 12, influence: 0.5 }, maxLevel: 3, description: 'Proizvodi zlato, povećava stanovništvo. 4 boda.', points: 4 },
   fortress: { name: 'Tvrđava', cost: { gold: 35, wood: 20, iron: 20 }, allowedTerrain: ['plains', 'forest', 'mountains', 'desert', 'special'], production: {}, maxLevel: 3, description: 'Snažno povećava obranu teritorija.', points: 0 },
   barracks: { name: 'Barake', cost: { gold: 30, wood: 25, iron: 10 }, allowedTerrain: ['plains', 'forest', 'desert', 'special'], production: {}, maxLevel: 3, description: 'Omogućuje vitezove, konjicu i opsadna oruđa.', points: 0 },
   market: { name: 'Tržnica', cost: { gold: 35, wood: 20 }, allowedTerrain: ['plains', 'desert', 'special'], production: { gold: 4 }, maxLevel: 3, description: 'Poboljšava trgovinu i donosi zlato.', points: 0 },
@@ -119,7 +119,7 @@ export const GAME_CONFIG = {
     minPlayers: 4,
     maxPlayers: 8,
     days: 7,
-    commandPointsPerDay: 10,
+    commandPointsPerDay: 14,
     mapWidth: 15,
     mapHeight: 13,
     /** Broj teritorija otoka (organski oblik, ~100–120). */
@@ -135,7 +135,7 @@ export const GAME_CONFIG = {
     devPlanningSeconds: 90,
   },
   start: {
-    resources: { gold: 100, food: 50, iron: 20, wood: 30, influence: 10 } as Record<ResourceType, number>,
+    resources: { gold: 180, food: 90, iron: 50, wood: 70, influence: 14 } as Record<ResourceType, number>,
     stability: 80,
     capitalPopulation: 120,
     neighborPopulation: 70,
@@ -262,6 +262,8 @@ export const GAME_CONFIG = {
     isolatedAttritionPerDay: 0.12,
     isolatedAttritionMax: 0.4,
     retreatSurvivorRate: 0.6,
+    /** Osvajanje neutralnog teritorija donosi odmah plijen: osnovica + po razini važnosti (rani rast se sam financira). */
+    neutralPlunderBase: 8, neutralPlunderPerImportance: 4,
     plunderBase: 6,
     plunderPerPop: 0.1,
     plunderMax: 30,
@@ -279,12 +281,12 @@ export const GAME_CONFIG = {
       false_info: { influence: 4, gold: 5 },
       counter: { influence: 2, gold: 0 },
     } as Record<string, { influence: number; gold: number }>,
-    basePower: 1.0,
+    basePower: 1.3, // bez tehnologije špijun je „srednje” pouzdan; protuobavještajna tehnologija neprijatelja ga vraća na „nisku”
     techPower: 0.35,
     counterBase: 1.0,
-    counterOpBonus: 0.6,
-    highRatio: 1.6, mediumRatio: 1.05, lowRatio: 0.65,
-    error: { high: 0.1, medium: 0.25, low: 0.45 },
+    counterOpBonus: 0.75,
+    highRatio: 1.55, mediumRatio: 1.05, lowRatio: 0.65,
+    error: { high: 0.08, medium: 0.18, low: 0.38 },
     disinfoSkew: 0.4,
     sabotageCosts: {
       production: { influence: 4, gold: 10 },
@@ -350,6 +352,8 @@ export const GAME_CONFIG = {
       unshaken: { points: 2, title: 'Nepokolebljivi', description: 'Obrani sve teritorije kroz cijelu kampanju.', victories: 0 },
       conqueror: { points: 2, title: 'Osvajač', description: 'Osvoji 5 protivničkih teritorija.', captures: 5 },
     },
+    /** Gospodarstvo se računa u bodove: bruto dnevni prihod (proizvodnja + porezi, u vrijednosti zlata). Bez prihoda nema ni vojske ni teritorija. */
+    economy: { base: 90, step: 20, cap: 6 },
     regionControlShare: 0.5,
   },
   ai: { baseSeed: 'bot' },

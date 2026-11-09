@@ -79,6 +79,8 @@ export function MapScreen() {
     return h;
   }, [op, v, g.tourTargets]);
 
+  const hits = useMemo(() => radar(v), [v]);
+  const [radarOpen, setRadarOpen] = useState(false);
   const badges = useMemo(() => { const b: Record<string, 'threat' | 'chance'> = {}; for (const r of radar(v)) if (!b[r.id]) b[r.id] = r.kind; return b; }, [v]);
 
   const onSelect = (id: string | null) => {
@@ -110,6 +112,25 @@ export function MapScreen() {
   return (
     <div className="flex-1 min-h-0 relative bg-white" data-testid="map-area">
       <HexMap view={v} selectedId={g.selected} onSelect={stableSelect} arrows={replay ? replayArrows : arrows} highlights={replay ? replayHl : highlights} badges={op || replay ? undefined : badges} overlay={overlay} className="absolute inset-0" fitSignal={fitSignal} zoomSignal={zoomSignal} focusId={replayBattle ? replayBattle.territoryId : !desktop ? (op?.target ?? g.selected) : null} focusBias={0.24} />
+
+      {/* radar: što se događa uz tvoje granice — klik otvara detalje */}
+      {hits.length > 0 && !op && !replay && (
+        <div className="absolute left-3 top-[3.75rem] z-10 max-w-[19rem] w-[calc(100%-1.5rem)] lg:w-[19rem]" data-testid="radar">
+          <button className="flex items-center gap-2 rounded-full bg-white float-shadow pl-3 pr-3.5 h-9 text-sm font-semibold" onClick={() => setRadarOpen((o) => !o)} aria-expanded={radarOpen}>
+            {hits.some((h) => h.kind === 'threat') ? <span className="h-2 w-2 rounded-full bg-bad animate-pulse" /> : <span className="h-2 w-2 rounded-full bg-good" />}
+            {hits.filter((h) => h.kind === 'threat').length > 0 && <span>{hits.filter((h) => h.kind === 'threat').length} {hits.filter((h) => h.kind === 'threat').length === 1 ? 'prijetnja' : 'prijetnje'}</span>}
+            {hits.filter((h) => h.kind === 'chance').length > 0 && <span className="text-good">{hits.filter((h) => h.kind === 'chance').length} {hits.filter((h) => h.kind === 'chance').length === 1 ? 'prilika' : 'prilike'}</span>}
+            <Icon name="down" size={14} className={`text-muted transition-transform ${radarOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {radarOpen && (
+            <div className="mt-2 rounded-2xl bg-white float-shadow p-1.5 max-h-[46dvh] overflow-y-auto space-y-0.5">
+              {hits.slice(0, 8).map((h) => (
+                <button key={h.id + h.kind} className="w-full text-left rounded-xl px-3 py-2 hover:bg-neutral-50 flex gap-2.5" onClick={() => { g.select(h.id); setRadarOpen(false); }} data-testid="radar-item">
+                  <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${h.kind === 'threat' ? 'bg-bad' : 'bg-good'}`} />
+                  <span className="min-w-0"><span className="block text-sm font-semibold">{h.title}</span><span className="block text-xs text-muted">{h.text}</span></span>
+                </button>))}
+            </div>)}
+        </div>)}
 
       {/* sloj + legenda (plutajuće, bez okvira) */}
       <div className="absolute top-3 left-3 right-3 lg:right-auto flex items-center gap-2 pointer-events-none">

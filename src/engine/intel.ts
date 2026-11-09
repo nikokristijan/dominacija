@@ -24,7 +24,7 @@ export function visibilityOf(s: GameState, viewer: PlayerId, t: Territory): Visi
 }
 
 export function errorFor(c: Confidence): number {
-  return c === 'high' ? 0.1 : c === 'medium' ? 0.25 : 0.45;
+  return c === 'high' ? 0.08 : c === 'medium' ? 0.18 : 0.38;
 }
 
 /** Raspon koji uvijek sadrži pravu vrijednost (osim kod dezinformacija). Širina ∝ pogreška. */
@@ -64,6 +64,8 @@ export interface GarrisonEstimate {
   confidence: Confidence | 'none';
   source: 'own' | 'passive' | 'intel' | 'unknown';
   round?: number;
+  /** Sastav postrojbi iz špijunaže (točno kod visoke, procjena kod srednje pouzdanosti). */
+  composition?: Array<{ unit: string; min: number; max: number }>;
 }
 
 /** Što igrač smije znati o postrojbama na teritoriju. */
@@ -74,7 +76,7 @@ export function estimateGarrison(s: GameState, viewer: PlayerId, t: Territory): 
   const intel = freshIntelOnTerritory(s, viewer, t.id);
   if (intel && typeof (intel.data as any).min === 'number') {
     const d = intel.data as { min: number; max: number };
-    return { range: { min: d.min, max: d.max }, confidence: intel.confidence as Confidence, source: 'intel', round: intel.round };
+    return { range: { min: d.min, max: d.max }, confidence: intel.confidence as Confidence, source: 'intel', round: intel.round, composition: (intel.data as { comp?: GarrisonEstimate['composition'] }).comp };
   }
   if (vis === 'near') {
     const cover = t.owner ? getMods(s.players[t.owner]).counterPower : 0;

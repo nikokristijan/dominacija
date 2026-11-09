@@ -37,16 +37,29 @@ export function gatherIntel(s: GameState, pid: PlayerId, params: OrderParamsMap[
   switch (params.action) {
     case 'army': {
       if (tgtTerritory) {
-        const total = unitTotal(tgtTerritory.garrison);
-        const r = estimateRange(total, conf, key(tgtTerritory.id), skew);
-        const data: Record<string, unknown> = { min: r.min, max: r.max };
-        if (conf === 'high') { const comp: Record<string, number> = {}; for (const u of UNIT_TYPES) if (tgtTerritory.garrison[u]) comp[u] = tgtTerritory.garrison[u]!; data.composition = skew ? undefined : comp; }
-        return { ok: true, report: mk('army', data, `Vojska u teritoriju ${tgtTerritory.name} (${tgtTerritory.owner ? targetName : 'neutralni'}): ${fmtRange(r)} vojnika. Pouzdanost: ${confLabel(conf)}.`, tgtTerritory.id) };
+        const g = tgtTerritory.garrison;
+        const total = unitTotal(g);
+        const exact = conf === 'high' && !skew;
+        const r = exact ? { min: total, max: total } : estimateRange(total, conf, key(tgtTerritory.id), skew);
+        // sastav po vrstama: točno (visoka), procjena (srednja) ili samo prevladavajuće vrste (niska)
+        const comp = UNIT_TYPES.filter((u) => (g[u] ?? 0) > 0).map((u) => {
+          const rr = exact ? { min: g[u]!, max: g[u]! } : estimateRange(g[u]!, conf, key(`${tgtTerritory.id}:${u}`), skew);
+          return { unit: u, min: rr.min, max: rr.max };
+        }).filter((x) => conf !== 'low' || x.max >= Math.max(2, total * 0.25)).sort((a, b) => b.max - a.max);
+        const tdef = s.config.terrain[tgtTerritory.terrain].defense * (1 + 0.1 * tgtTerritory.defenseLevel) * (tgtTerritory.building === 'fortress' ? 1.25 : 1);
+        const needed = Math.max(4, Math.ceil(r.max * 1.25 * tdef));
+        const data: Record<string, unknown> = { min: r.min, max: r.max, best: Math.round((r.min + r.max) / 2), comp, defenseLevel: tgtTerritory.defenseLevel, building: tgtTerritory.building, terrain: tgtTerritory.terrain, needed, exact };
+        const names = s.config.units;
+        const mid = (x: { min: number; max: number }) => Math.round((x.min + x.max) / 2);
+        const compText = comp.length ? comp.map((x) => `${exact ? '' : '~'}${mid(x)} ${names[x.unit as keyof typeof names].name.toLowerCase()}`).join(', ') : '';
+        const head = exact ? `${total} vojnika` : `≈${mid(r)} vojnika (${fmtRange(r)})`;
+        return { ok: true, report: mk('army', data, `${tgtTerritory.name} (${tgtTerritory.owner ? targetName : 'neutralni'}): ${head}${compText ? ` — ${compText}` : ''}. Pouzdanost: ${confLabel(conf)}. Za siguran napad šalji ≈${needed}+.`, tgtTerritory.id) };
       }
       const terr = playerTerritories(s, targetPlayer!);
       const total = terr.reduce((n, t) => n + unitTotal(t.garrison), 0);
       const r = estimateRange(total, conf, key(`all:${targetPlayer}`), skew);
-      return { ok: true, report: mk('army', { min: r.min, max: r.max, total: true }, `Procjena ukupne vojske kraljevstva ${targetName}: ${fmtRange(r)} vojnika. Pouzdanost: ${confLabel(conf)}.`) };
+      const top = [...terr].sort((a, b) => unitTotal(b.garrison) - unitTotal(a.garrison)).slice(0, 2).map((t) => `${t.name} (≈${Math.round(estimateRange(unitTotal(t.garrison), conf, key(`top:${t.id}`), skew).max * 0.85)})`).join(', ');
+      return { ok: true, report: mk('army', { min: r.min, max: r.max, best: Math.round((r.min + r.max) / 2), total: true }, `Ukupna vojska kraljevstva ${targetName}: ≈${Math.round((r.min + r.max) / 2)} vojnika (${fmtRange(r)}). Najjača uporišta: ${top}. Pouzdanost: ${confLabel(conf)}.`) };
     }
     case 'resources': {
       const p = s.players[targetPlayer!];

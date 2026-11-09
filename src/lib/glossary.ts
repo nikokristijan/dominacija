@@ -6,6 +6,7 @@ export const GLOSSARY: Record<string, { term: string; text: string }> = {
   magla: { term: 'Magla rata', text: 'Tuđu vojsku vidiš samo kao procjenu (~). Špijunaža podiže pouzdanost, ali savršenih podataka nema.' },
   otpor: { term: 'Otpor', text: 'Ako padne glavni grad, ne ispadaš: ulaziš u Otpor s jeftinim novačenjem i mogućnošću ustanka za povratak.' },
   cilj: { term: 'Tajni cilj', text: 'Skriven do kraja; ispunjen donosi 5 bodova. Otkriva se tek u završnom poretku.' },
+  gospodarstvo: { term: 'Gospodarstvo', text: 'Bruto dnevni prihod (proizvodnja + porezi) donosi do 6 bodova — ali još važnije: bez zlata, željeza i hrane nema vojske, a bez vojske nema teritorija.' },
   podne: { term: 'Podnevno razrješenje', text: 'Usred dana (zadano 13:00) stižu rezultati špijunaže i diplomatske ponude, pa ih možeš iskoristiti za večernje odluke. Napadi, gradnja i novačenje razrješavaju se tek navečer.' },
   razrjesenje: { term: 'Razrješenje', text: 'U zadani trenutak (ili čim su svi spremni) server istovremeno izvršava naredbe svih igrača. Redoslijed klikanja ne znači ništa.' },
   obrana: { term: 'Obrana', text: 'Bonus branitelja: razina obrane, utvrde i glavni grad. Utvrđivanje daje dodatni bonus samo tu rundu.' },

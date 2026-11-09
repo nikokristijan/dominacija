@@ -74,6 +74,12 @@ export function botPlan(s: GameState, pid: PlayerId, now: string) {
   const fc = forecastEconomy(s, pid);
   setTax(s, pid, p.stability < 55 ? 'low' : p.stability > 82 && pers !== 'builder' ? 'high' : 'normal');
 
+  // 0) Rani razvoj: bot koji ne gradi gospodarstvo stagnira — željezo i hrana prije svega
+  if (R <= 4 && left() >= 2) {
+    const spot = (pred: (t: Territory) => boolean) => mine().find((t) => !t.building && !t.construction && !t.isCapital && pred(t));
+    if (fc.net.iron < 5) { const t = spot((x) => cfg.buildings.mine.allowedTerrain.includes(x.terrain)); if (t) submit({ type: 'build', params: { territoryId: t.id, building: 'mine' } }); }
+    if (left() >= 2 && fc.net.gold < 30 && R >= 2) { const t = spot((x) => (x.terrain === 'plains' || x.terrain === 'special')); if (t) submit({ type: 'build', params: { territoryId: t.id, building: 'city' } }); }
+  }
   // 1) Hrana i stabilnost
   if (fc.net.food < 3 && left() >= 2) {
     const spot = mine().find((t) => !t.building && !t.construction && cfg.buildings.farm.allowedTerrain.includes(t.terrain));
@@ -84,14 +90,14 @@ export function botPlan(s: GameState, pid: PlayerId, now: string) {
   for (const t of threatened.sort((a, b) => Number(b.isCapital) - Number(a.isCapital)).slice(0, 2)) if (left() >= 5) submit({ type: 'defend', params: { territoryId: t.id, stance: 'entrench' } });
 
   // 3) Napadi na povoljne ciljeve (procjena preko previewOrder)
-  const attackBudget = pers === 'aggressor' ? 2 : pers === 'builder' ? 1 : 1;
+  const attackBudget = pers === 'aggressor' ? 3 : 2;
   let attacks = 0;
   const candidates: Array<{ from: Territory; target: Territory; units: Units; score: number }> = [];
   for (const from of mine()) {
     const free = subUnits(from.garrison, {});
     const total = unitTotal(free);
     if (total < 4) continue;
-    const keep = from.isCapital ? 4 : 1;
+    const keep = from.isCapital ? 3 : 1;
     const send: Units = {};
     let toSend = Math.max(0, total - keep);
     for (const u of UNIT_TYPES) { const n = Math.min(free[u] ?? 0, toSend); if (n > 0) { send[u] = n; toSend -= n; } }
@@ -110,7 +116,9 @@ export function botPlan(s: GameState, pid: PlayerId, now: string) {
     const order: OrderInput = { type: 'attack', params: { fromId: cnd.from.id, targetId: cnd.target.id, units: cnd.units, strategy, formation: 'line', supply: 'standard', risk: 'balanced', retreatBelow: 0.35, reserve: {} } };
     const pv = previewOrder(s, pid, order);
     if (!pv.validation.ok) continue;
-    if (pv.outlook !== 'favorable' && !(pv.outlook === 'uncertain' && pers === 'aggressor' && hash01(`${s.seed}:${R}:${cnd.target.id}:${pid}`) < 0.5)) continue;
+    // opasni botovi riskiraju: i „neizvjesno” je dovoljno ako im karakter to dopušta
+    const nerve = pers === 'aggressor' ? 0.85 : 0.45;
+    if (pv.outlook !== 'favorable' && !(pv.outlook === 'uncertain' && hash01(`${s.seed}:${R}:${cnd.target.id}:${pid}`) < nerve)) continue;
     const r = submit(order);
     if (r.ok) attacks++;
   }
@@ -124,13 +132,13 @@ export function botPlan(s: GameState, pid: PlayerId, now: string) {
   }
   // 5) Novačenje
   const army = mine().reduce((n, t) => n + unitTotal(t.garrison), 0) + p.pendingRecruits.reduce((n, r) => n + r.count, 0);
-  const targetArmy = 10 + R * (pers === 'aggressor' ? 5 : 3);
-  for (let i = 0; i < 2 && army < targetArmy && left() >= 1; i++) {
+  const targetArmy = 12 + R * (pers === 'aggressor' ? 8 : 6);
+  for (let i = 0; i < 3 && (army < targetArmy || p.resources.gold > 90) && left() >= 1; i++) {
     const cap = s.map.territories[p.capitalId];
     const home = cap.owner === pid ? cap : mine()[0];
     if (!home) break;
     const unit = i === 0 ? 'infantry' : (R > 2 && p.resources.iron >= 20 ? 'knights' : 'archers');
-    const count = Math.min(10, Math.max(3, Math.floor((targetArmy - army) / (i + 1))));
+    const count = Math.min(14, Math.max(3, Math.floor((targetArmy - army) / (i + 1)), p.resources.gold > 90 ? 6 : 0));
     for (let c = count; c >= 2; c -= 2) if (submit({ type: 'recruit', params: { territoryId: home.id, unit, count: c } }).ok) break;
   }
   // 6) Gradnja

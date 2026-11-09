@@ -8,6 +8,8 @@ import { ResourceIcon } from '@/components/art/Resources';
 import { UnitIcon } from '@/components/art/Characters';
 import { ActionRow, Progress, Seg } from '@/components/ui/kit';
 import { fmtRange } from '@/engine/intel';
+import { IntelCard } from './IntelCard';
+import { radar } from '@/lib/radar';
 import { rewardText } from '@/engine/camps';
 import { unitTotal } from '@/engine/util';
 import { timeAgo } from '@/lib/format';
@@ -45,6 +47,7 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
   const [tab, setTab] = useState<'pregled' | 'detalji' | 'intel'>('pregled');
   const intelReports = v.intel.filter((r) => r.territoryId === t.id).sort((a, b) => b.round - a.round);
   const adj = adjacentOwned(v, t.id);
+  const radarHit = radar(v).find((r) => r.id === t.id);
   const planning = v.phase === 'planning' && !v.me.ready;
   const canAttack = !mine && t.terrain !== 'water' && adj.length > 0;
   const prod = t.production;
@@ -82,8 +85,19 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
           ) : null}
           <div className="grid grid-cols-2 border-b border-line pb-3">
             <div className="flex items-center gap-3"><Icon name="shield" size={24} stroke={1.5} className="text-neutral-500" /><div><div className="text-xs text-muted"><Term id="obrana">Obrana</Term></div><div className="text-xl font-semibold leading-tight">{mine || t.defenseLevel !== undefined ? `+${defTotal}%` : '?'}</div></div></div>
-            <div className="flex items-center gap-3 pl-4 border-l border-line"><Icon name="swords" size={24} stroke={1.5} className="text-neutral-500" /><div><div className="text-xs text-muted">Vojska</div><div className="text-xl font-semibold leading-tight">{mine ? armyTotal : t.armyEstimate?.range ? fmtRange(t.armyEstimate.range) : armyTotal ?? '?'}</div></div></div>
+            <div className="flex items-center gap-3 pl-4 border-l border-line"><Icon name="swords" size={24} stroke={1.5} className="text-neutral-500" /><div><div className="text-xs text-muted">Vojska</div><div className="text-xl font-semibold leading-tight">{mine ? armyTotal : t.armyEstimate?.range ? `≈${Math.round((t.armyEstimate.range.min + t.armyEstimate.range.max) / 2)}` : armyTotal ?? '?'}</div>{!mine && <div className="text-[11px] text-muted">{t.armyEstimate?.source === 'intel' ? `izvidnici, dan ${t.armyEstimate.round}` : t.armyEstimate?.source === 'passive' ? 'procjena izdaleka' : armyTotal !== null ? '' : 'nepoznato — pošalji izvidnike'}</div>}</div></div>
           </div>
+          {radarHit && radarHit.kind === 'threat' && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2" data-testid="threat-card">
+              <div className="flex items-center gap-2 font-semibold text-red-900"><Icon name="warn" size={16} />{radarHit.title}</div>
+              <div className="text-sm text-red-900">{radarHit.text} Omjer snaga ≈ {radarHit.ratio.toFixed(1)}×.</div>
+              {planning && <div className="flex gap-2"><button className="btn btn-yellow btn-sm" onClick={() => onAction('defend', t.id)} data-testid="threat-defend">Utvrdi / pojačaj</button><button className="btn btn-ghost btn-sm" onClick={() => onAction('recruit', t.id)}>Novači</button></div>}
+            </div>)}
+          {radarHit && radarHit.kind === 'chance' && canAttack && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-3 space-y-2" data-testid="chance-card">
+              <div className="font-semibold text-green-900">{radarHit.title}</div><div className="text-sm text-green-900">{radarHit.text}</div>
+              {planning && <button className="btn btn-yellow btn-sm" onClick={() => onOperation(t.id)}>Planiraj napad</button>}
+            </div>)}
           {t.camp && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm" data-testid="camp-card"><div className="font-semibold text-amber-900">{t.camp.name}</div><div className="text-amber-800">Jače čuvan neutralni kamp. Tko ga razbije, osvaja plijen: <b>{rewardText(t.camp.reward)}</b>.</div></div>}
           {t.supplied === false && <div className="rounded-xl bg-red-50 p-3 text-sm text-bad font-medium"><Term id="opskrba">Odsječen od opskrbe</Term>: vojska slabi, proizvodnja −50%. Spoji ga s gradom preko svojih teritorija.</div>}
           {planning && t.terrain !== 'water' && (
@@ -151,12 +165,13 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
         <div className="space-y-3">
           {t.building && <div className="flex justify-between text-sm"><span className="text-muted">Vidljiva zgrada</span><b>{cfg.buildings[t.building].name}</b></div>}
           {t.defenseLevel !== undefined && <div className="flex justify-between text-sm"><span className="text-muted">Utvrde (procjena)</span><b>razina ≈ {t.defenseLevel}</b></div>}
-          <div className="flex justify-between text-sm items-center"><span className="text-muted">Postrojbe</span>{t.armyEstimate?.range ? <b>{fmtRange(t.armyEstimate.range)} <span className="chip ml-1">pouzdanost {CONF[t.armyEstimate.confidence]}</span></b> : t.armyEstimate?.exact ? <b>{unitTotal(t.armyEstimate.exact)}</b> : <span className="chip chip-bad">nepoznato</span>}</div>
+          <div className="flex justify-between text-sm items-center"><span className="text-muted">Postrojbe</span>{t.armyEstimate?.range ? <b>≈{Math.round((t.armyEstimate.range.min + t.armyEstimate.range.max) / 2)} <span className="text-xs font-normal text-muted">({fmtRange(t.armyEstimate.range)})</span> <span className="chip ml-1">pouzdanost {CONF[t.armyEstimate.confidence]}</span></b> : t.armyEstimate?.exact ? <b>{unitTotal(t.armyEstimate.exact)}</b> : <span className="chip chip-bad">nepoznato</span>}</div>
           {t.armyEstimate?.source === 'intel' && t.armyEstimate.round && <p className="text-xs text-muted">Izvor: špijunaža, dan {t.armyEstimate.round}.</p>}
           {t.siegeProgress ? <div className="chip chip-warn">Opsada: razina {t.siegeProgress}</div> : null}
           <div className="label pt-1">Izviđačka izvješća</div>
           {intelReports.length === 0 && <p className="text-sm text-muted">Nema izvješća o ovom teritoriju.</p>}
-          {intelReports.map((r) => <div key={r.id} className="rounded-xl border border-line p-3 text-sm"><div className="font-medium">{r.summary}</div><div className="text-xs text-muted mt-1">{timeAgo(r.createdAt)} · dan {r.round}{v.round - r.round > cfg.espionage.staleAfterRounds ? ' · zastarjelo' : ''}</div></div>)}
+          {intelReports.filter((r) => r.confidence !== 'failed').map((r, i) => <IntelCard key={r.id} r={r} onAttack={i === 0 && canAttack && planning ? () => onOperation(t.id) : undefined} />)}
+          {intelReports.some((r) => r.confidence === 'failed') && <p className="text-xs text-muted">Neka izviđanja su propala — špijun je uhvaćen. Protuobavještajna služba neprijatelja ih otežava.</p>}
         </div>
       )}
     </div>

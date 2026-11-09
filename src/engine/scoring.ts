@@ -1,4 +1,5 @@
 import { RESOURCE_TYPES } from './config';
+import { forecastEconomy } from './economy';
 import { objectiveProgress } from './objectives';
 import type { GameState, PlayerId, ScoreBreakdown } from './types';
 import { playerTerritories, round2 } from './util';
@@ -30,9 +31,12 @@ export function computeScore(s: GameState, pid: PlayerId): ScoreBreakdown {
   const allyCount = s.alliances.filter((x) => x.status === 'active' && x.kind === 'alliance' && (x.a === pid || x.b === pid)).length;
   const diplomaticScore = allyCount * 3 + p.reputation.keptTreaties * 2 + p.reputation.tradeCount + p.reputation.supportsGiven * 2 - p.reputation.betrayals * 3;
   const regions = regionsControlled.length * cfg.region;
+  const fc = forecastEconomy(s, pid);
+  const income = round2(RESOURCE_TYPES.reduce((sum, k) => sum + fc.production[k] * v[k], 0) + fc.taxes * v.gold);
+  const economy = Math.max(0, Math.min(cfg.economy.cap, Math.floor((income - cfg.economy.base) / cfg.economy.step)));
   return {
-    playerId: pid, territories, cities, enemyCapitals, regions, objective, military,
-    total: territories + cities + enemyCapitals + regions + objective + military,
+    playerId: pid, territories, cities, enemyCapitals, regions, objective, military, economy, income,
+    total: territories + cities + enemyCapitals + regions + objective + military + economy,
     territoryCount: playerTerritories(s, pid).length, cityCount, economicStrength, diplomaticScore,
     militaryAchievements: ach, regionsControlled, objectiveCompleted: prog.done, objectiveTitle: p.objective.title,
   };

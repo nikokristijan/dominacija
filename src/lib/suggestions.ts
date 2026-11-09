@@ -21,6 +21,18 @@ export function suggestions(v: PlayerView, base: string): Suggestion[] {
   if (th) out.push({ id: 'threat', title: th.title, text: th.text, href: `${base}/karta?focus=${th.id}`, cta: 'Na kartu', tone: 'bad' });
   if (fresh) out.push({ id: 'intel', title: 'Izvidnici su se vratili', text: fresh.summary.length > 90 ? fresh.summary.slice(0, 88) + '…' : fresh.summary, href: fresh.territoryId ? `${base}/karta?focus=${fresh.territoryId}` : `${base}/karta`, cta: 'Na kartu', tone: 'good' });
   if (v.dilemma && !v.dilemma.chosen) out.push({ id: 'dilemma', title: `Dilema dana: ${v.dilemma.title}`, text: 'Čeka te odluka s posljedicama — A ili B.', href: base, cta: 'Odluči', tone: 'info' });
+  // Ekonomija: što stoji ili presušuje (posljedice, ne predavanje)
+  const net = v.forecast.net, res0 = v.me.resources;
+  const own = mine.filter((t) => !t.building && !t.construction && !t.isCapital);
+  const mineSpot = own.find((t) => v.config.buildings.mine.allowedTerrain.includes(t.terrain));
+  const farmSpot = own.find((t) => v.config.buildings.farm.allowedTerrain.includes(t.terrain));
+  const days = (k: 'food' | 'gold' | 'iron' | 'wood') => (net[k] < -0.05 ? res0[k] / -net[k] : Infinity);
+  if (days('food') < 3 || days('gold') < 3) {
+    const k = days('food') <= days('gold') ? 'food' : 'gold';
+    out.push({ id: 'runway', title: `${k === 'food' ? 'Hrana' : 'Zlato'} presušuje: dovoljno za ~${Math.max(0, Math.floor(days(k)))} d`, text: k === 'food' ? 'Gladna vojska gubi bitke, glad ruši stabilnost. Izgradi farmu.' : 'Bez zlata nema plaća ni novih vojnika. Podigni poreze ili izgradi grad.', href: farmSpot && k === 'food' ? `${base}/karta?focus=${farmSpot.id}` : `${base}/kraljevstvo`, cta: k === 'food' ? 'Farma' : 'Gospodarstvo', tone: 'bad' });
+  } else if (net.iron <= 0.5 && res0.iron < 35 && v.round <= 5) {
+    out.push({ id: 'iron', title: `Željezo stoji: ${net.iron >= 0 ? '+' : ''}${Math.round(net.iron * 10) / 10}/dan, zaliha ${Math.floor(res0.iron)}`, text: 'Bez dotoka željeza vojska prestaje rasti. Rudnik daje +10 dnevno.', href: mineSpot ? `${base}/karta?focus=${mineSpot.id}` : `${base}/karta`, cta: mineSpot ? 'Rudnik' : 'Karta', tone: 'warn' });
+  }
   if (v.me.status === 'resistance') out.push({ id: 'resist', title: 'Pokreni ustanak', text: 'Glavni grad je pao. Naredba „Ustanak“ jedini je put natrag.', href: `${base}/naredbe`, cta: 'Naredbe', tone: 'bad' });
   if (v.forecast.foodShortageRisk) out.push({ id: 'food', title: 'Prijeti glad', text: 'Hrana neće pokriti vojsku. Izgradi farmu ili smanji vojsku.', href: `${base}/kraljevstvo`, cta: 'Razvoj', tone: 'bad' });
   if (v.forecast.rebellionWarning !== 'none') out.push({ id: 'stab', title: 'Stabilnost pada', text: 'Snizi poreze ili izgradi hram prije nego izbije pobuna.', href: `${base}/kraljevstvo`, cta: 'Razvoj', tone: v.forecast.rebellionWarning === 'red' ? 'bad' : 'warn' });

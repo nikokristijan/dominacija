@@ -22,14 +22,17 @@ export function radar(v: PlayerView): RadarHit[] {
   const mine = Object.values(v.territories).filter((t) => t.owner === v.me.id);
   for (const t of mine) {
     const own = unitTotal(t.garrison ?? {});
-    let worst: { name: string; owner: string; est: number } | null = null;
+    const foes: Array<{ name: string; owner: string; est: number; grudge: number }> = [];
     for (const n of nbrs(v, t.id)) {
       if (!hostile(n) || n.terrain === 'water') continue;
       const e = estimate(n); if (e === null) continue;
-      if (!worst || e > worst.est) worst = { name: n.name, owner: v.players[n.owner!].name, est: e };
+      foes.push({ name: n.name, owner: v.players[n.owner!].name, est: e, grudge: v.players[n.owner!].grudge ?? 0 });
     }
+    foes.sort((a, b) => b.est - a.est);
+    const worst = foes[0];
     if (worst && worst.est >= Math.max(3, own * 0.8)) {
-      out.push({ id: t.id, kind: 'threat', title: `Prijetnja: ${t.name}`, text: `${worst.owner} kraj ${worst.name} (~${Math.round(worst.est)}) naspram tvojih ${own}.`, ratio: worst.est / Math.max(1, own) });
+      const list = foes.slice(0, 3).map((f) => `${f.owner} kod ${f.name} ≈${Math.round(f.est)}${f.grudge > 0 ? ' (zamjera ti)' : ''}`).join('; ');
+      out.push({ id: t.id, kind: 'threat', title: `Prijetnja: ${t.name}`, text: `Uz granicu: ${list}. Tvoja straža: ${own}.`, ratio: worst.est / Math.max(1, own) });
     }
   }
   const chance = new Map<string, RadarHit>();

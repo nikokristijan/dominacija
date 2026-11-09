@@ -11,15 +11,15 @@ import { Counter } from '@/components/ui/kit';
 import { Icon } from '@/components/art/Icons';
 import { RES_NAMES, num } from '@/lib/format';
 
-export function ResPill({ name, value, delta, label, compact }: { name: ResourceIconName; value: number | string; delta?: number; label?: string; compact?: boolean }) {
+export function ResPill({ name, value, delta, label, compact, runway }: { name: ResourceIconName; value: number | string; delta?: number; label?: string; compact?: boolean; runway?: number | null }) {
   return (
     <div className="flex items-center gap-2 shrink-0" title={label ?? String(name)}>
       <ResourceIcon name={name} size={compact ? 17 : 22} className="text-neutral-500" />
       <div className="leading-tight">
         <div className={`font-semibold tabular-nums ${compact ? 'text-sm' : 'text-[17px]'}`}>{typeof value === 'number' ? num(value) : value}</div>
-        {delta !== undefined && !compact && <div className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta * 10) / 10)}/d</div>}
+        {delta !== undefined && !compact && <div className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta * 10) / 10)}/d{runway != null && runway < 5 && <span className="ml-1 text-bad" title="Zalihe se troše: koliko dana do nule">· {Math.max(0, Math.floor(runway))}d</span>}</div>}
       </div>
-      {delta !== undefined && compact && <span className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta))}</span>}
+      {delta !== undefined && compact && <span className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta))}{runway != null && runway < 5 && <b className="ml-0.5">{Math.max(0, Math.floor(runway))}d</b>}</span>}
     </div>
   );
 }
@@ -38,6 +38,20 @@ export function PlayerChip({ view, id, size = 26 }: { view: PlayerView; id: Play
 
 const CONF: Record<string, { label: string; cls: string }> = { high: { label: 'Visoka pouzdanost', cls: 'chip-good' }, medium: { label: 'Srednja pouzdanost', cls: 'chip-yellow' }, low: { label: 'Niska pouzdanost', cls: 'chip-warn' }, none: { label: 'Nepoznato', cls: 'chip-bad' } };
 
+const REMEDY: Record<string, string> = {
+  željezo: 'Rudnik daje +10 željeza dnevno (planina, pustinja ili poseban teritorij) — bez dotoka željeza vojska ne raste. Možeš i trgovati zlatom za željezo.',
+  zlato: 'Zlato dolazi od poreza (Kraljevstvo), grada (+12 dnevno) i tržnice. Viši porezi pune riznicu, ali spuštaju stabilnost.',
+  hrana: 'Farma daje +14 hrane dnevno. Gladna vojska gubi bitke, a glad ruši stabilnost.',
+  drvo: 'Drvo daju šumski teritoriji; gradnja ga troši. Trgovina može nadomjestiti manjak.',
+  utjecaj: 'Utjecaj stiže iz glavnog grada, svetišta i istraživačkog centra; troše ga diplomacija, špijunaža i pripajanje.',
+};
+/** Savjet „kako do toga” za svaki nedostajući resurs iz poruka validacije. */
+const remedies = (errors: string[]): string[] => {
+  const out = new Set<string>();
+  for (const e of errors) { const m = /Nedovoljno resursa: (\p{L}+)/u.exec(e); if (m && REMEDY[m[1]]) out.add(REMEDY[m[1]]); }
+  return [...out];
+};
+
 export function PreviewCard({ p }: { p: OrderPreview | null }) {
   if (!p) return <div className="card-flat text-muted text-sm shimmer">Računam strateški pregled…</div>;
   const v = p.validation;
@@ -49,6 +63,7 @@ export function PreviewCard({ p }: { p: OrderPreview | null }) {
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm"><span className="inline-flex items-center gap-1 font-semibold"><ResourceIcon name="command" size={18} />{v.cpCost} ZB</span><CostLine cost={v.resourceCost} /></div>
       </div>
       {v.errors.length > 0 && <ul className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-800 font-medium space-y-1">{v.errors.map((e, i) => <li key={i} className="flex gap-2"><Icon name="warn" size={16} className="shrink-0 mt-0.5" />{e}</li>)}</ul>}
+      {remedies(v.errors).map((r) => <div key={r} className="rounded-xl bg-neutral-50 border border-line p-3 text-sm text-neutral-700" data-testid="remedy"><b>Kako do toga:</b> {r}</div>)}
       {p.known.length > 0 && <Block title="Poznato" tone="good">{p.known.map((k, i) => <Row key={i} l={k.label} r={k.value} />)}</Block>}
       {p.estimated.length > 0 && <Block title="Procjena" tone="warn">{p.estimated.map((k, i) => <div key={i} className="flex justify-between gap-3 text-sm"><span className="text-muted">{k.label}</span><span className="text-right font-semibold">{k.value}<br /><span className={`chip ${CONF[k.confidence]?.cls ?? ''} mt-0.5`}>{CONF[k.confidence]?.label}</span></span></div>)}</Block>}
       {p.unknown.length > 0 && <Block title="Nepoznato" tone="muted">{p.unknown.map((u, i) => <div key={i} className="text-sm text-muted flex gap-2"><span>?</span>{u}</div>)}</Block>}

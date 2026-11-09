@@ -32,7 +32,7 @@ describe('Generiranje karte i početni uvjeti', () => {
       expect(ts.length).toBe(3);
       expect(ts.filter((t) => t.isCapital).length).toBe(1);
       expect(ts.reduce((a, t) => a + unitTotal(t.garrison), 0)).toBe(10);
-      expect(p.resources).toEqual({ gold: 100, food: 50, iron: 20, wood: 30, influence: 10 });
+      expect(p.resources).toEqual(GAME_CONFIG.start.resources);
       expect(p.stability).toBe(80);
     }
   });
@@ -63,14 +63,15 @@ describe('Generiranje karte i početni uvjeti', () => {
 });
 
 describe('Naredbe i zapovjedni bodovi', () => {
-  it('odbija naredbe koje premašuju 10 zapovjednih bodova', () => {
+  it('odbija naredbe koje premašuju dnevni limit zapovjednih bodova', () => {
     const s = mk();
     const cap = s.players.p1.capitalId;
-    // 3 × istraživanje (3 CP) = 9, plus 2 × 1 CP recruit => 11 → posljednje odbijeno
-    expect(sub(s, 'p1', { type: 'research', params: { techId: 'mil_infantry' } }).ok).toBe(true);
-    expect(sub(s, 'p1', { type: 'research', params: { techId: 'eco_agri' } }).ok).toBe(true);
-    expect(sub(s, 'p1', { type: 'research', params: { techId: 'gov_order' } }).ok).toBe(true);
-    expect(sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'infantry', count: 1 } }).ok).toBe(true);
+    s.players.p1.resources = { gold: 999, food: 999, iron: 999, wood: 999, influence: 99 };
+    const lim = GAME_CONFIG.campaign.commandPointsPerDay;
+    // 3 CP × istraživanje troši 3 CP svako; popuni do limita pa je sljedeća 1-CP naredba odbijena
+    let used = 0; const techs = ['mil_infantry', 'eco_agri', 'gov_order', 'spy_intel'];
+    for (const t of techs) { if (used + 3 > lim - 1) break; expect(sub(s, 'p1', { type: 'research', params: { techId: t } }).ok).toBe(true); used += 3; }
+    while (used < lim) { expect(sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'infantry', count: 1 } }).ok).toBe(true); used += 1; }
     const r = sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'infantry', count: 1 } });
     expect(r.ok).toBe(false);
     expect(r.validation.errors.join(' ')).toMatch(/zapovjednih bodova/);
@@ -78,9 +79,10 @@ describe('Naredbe i zapovjedni bodovi', () => {
   it('sprječava dvostruko trošenje resursa (rezervacija pri predaji)', () => {
     const s = mk();
     const cap = s.players.p1.capitalId;
-    // 100 zlata: 9 pješaka = 72 zlata (18 željeza) → prva prolazi, druga (50 zlata) ne
-    expect(sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'infantry', count: 9 } }).ok).toBe(true);
-    const r2 = sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'archers', count: 5 } });
+    // 25 pješaka troše većinu zlata → druga naredba (strijelci) ne smije proći isto zlato
+    const inf = GAME_CONFIG.units.infantry.cost.gold; const n1 = Math.min(20, Math.floor((GAME_CONFIG.start.resources.gold - 20) / inf));
+    const r1 = sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'infantry', count: n1 } }); expect(r1.ok, JSON.stringify(r1.validation.errors)).toBe(true);
+    const r2 = sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'archers', count: 8 } });
     expect(r2.ok).toBe(false);
     expect(r2.validation.errors.join(' ')).toMatch(/Nedovoljno resursa/);
   });
@@ -169,9 +171,10 @@ describe('Ekonomija', () => {
     sub(s, 'p1', { type: 'recruit', params: { territoryId: cap, unit: 'infantry', count: 5 } });
     const noOrder = resolveRound(mk());
     const withOrder = resolveRound(s);
-    // 5 pješaka: 40 zlata, 10 hrane, 10 željeza (razlika u odnosu na isti scenarij bez naredbe, osim održavanja novaka)
-    expect(noOrder.players.p1.resources.gold - withOrder.players.p1.resources.gold).toBeCloseTo(40, 0);
-    expect(noOrder.players.p1.resources.iron - withOrder.players.p1.resources.iron).toBeCloseTo(10, 0);
+    // 5 pješaka: točno jednom cijena (razlika u odnosu na isti scenarij bez naredbe, osim održavanja novaka)
+    const ic = GAME_CONFIG.units.infantry.cost;
+    expect(noOrder.players.p1.resources.gold - withOrder.players.p1.resources.gold).toBeCloseTo(5 * ic.gold, 0);
+    expect(noOrder.players.p1.resources.iron - withOrder.players.p1.resources.iron).toBeCloseTo(5 * ic.iron, 0);
   });
   it('trgovačka ekspedicija mijenja resurse po tečaju s razlikom (spread)', () => {
     const s = mk();

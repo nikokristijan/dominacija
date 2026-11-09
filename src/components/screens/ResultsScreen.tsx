@@ -80,7 +80,7 @@ export function ResultsScreen() {
                     <div className={`w-9 text-center text-2xl font-semibold tabular-nums ${first ? 'text-primary' : ''}`}>{i + 1}.</div>
                     <FactionBadge faction={p.faction} size={first ? 44 : 36} />
                     <div className="flex-1 min-w-0"><div className="font-semibold truncate">{p.name}{me && <span className="chip ml-2">Ti</span>}{p.isBot && <span className="chip ml-1">bot</span>}</div>
-                      <div className="text-xs text-muted">{r.territoryCount} teritorija · {r.cityCount} gradova{r.objectiveCompleted ? ' · tajni cilj ✓' : ''}</div></div>
+                      <div className="text-xs text-muted">{r.territoryCount} teritorija · {r.cityCount} gradova · gospodarstvo +{r.economy}{r.objectiveCompleted ? ' · tajni cilj ✓' : ''}</div></div>
                     <div className="text-2xl font-semibold tabular-nums text-primary">{r.total}</div>
                   </motion.div>
                 ) : (

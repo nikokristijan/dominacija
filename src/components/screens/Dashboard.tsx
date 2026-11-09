@@ -92,7 +92,7 @@ export function Dashboard() {
           return (
             <Link href={`${base}/ljestvica`} className="card flex items-center gap-4" data-testid="rank-strip">
               <div className="text-3xl font-semibold tabular-nums w-12 text-center">{i + 1}.</div>
-              <div className="flex-1 min-w-0"><div className="font-semibold">{you.score} bodova · {i === 0 ? 'vodiš' : `${i + 1}. od ${sorted.length}`}</div><div className="text-sm text-muted truncate">{line}</div></div>
+              <div className="flex-1 min-w-0"><div className="font-semibold">{you.score} bodova · {i === 0 ? 'vodiš' : `${i + 1}. od ${sorted.length}`}</div><div className="text-sm text-muted truncate">{line}</div>{(() => { const sc = v.scoreBreakdownMine, ec = v.config.scoring.economy; const next = ec.base + (sc.economy + 1) * ec.step; return <div className="text-xs text-muted mt-0.5" data-testid="economy-line">Gospodarstvo: prihod ≈{Math.round(sc.income)}/dan · {sc.economy}/{ec.cap} bod.{sc.economy < ec.cap ? ` (sljedeći bod kod ${next})` : ''}</div>; })()}</div>
               <Icon name="chevron" size={16} className="text-muted" />
             </Link>);
         })()}
