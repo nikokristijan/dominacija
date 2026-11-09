@@ -12,7 +12,11 @@ export interface ProfileRecord {
 }
 export type CampaignStatus = 'waiting' | 'active' | 'completed' | 'disabled';
 export interface Member { userId: string | null; playerId: string; name: string; faction: FactionId | null; isBot: boolean; joinedAt: string }
-export interface Schedule { mode: 'daily' | 'dev'; timezone: string; planningStartHour: number; lockHour: number; devPlanningSeconds: number; resolveWhenAllReady: boolean }
+export interface Schedule {
+  mode: 'daily' | 'dev'; timezone: string; planningStartHour: number; lockHour: number; devPlanningSeconds: number; resolveWhenAllReady: boolean;
+  /** Sat podnevnog razrješenja (špijunaža + diplomacija); null/undefined = isključeno. U razvojnom/brzom načinu: pola trajanja dana. */
+  middayHour?: number | null;
+}
 export interface CampaignRecord {
   id: string; name: string; ownerId: string; inviteCode: string; status: CampaignStatus; createdAt: string; startedAt: string | null; completedAt: string | null;
   minPlayers: number; maxPlayers: number; devSimulation: boolean; isPublic: boolean;
@@ -20,7 +24,7 @@ export interface CampaignRecord {
   fillBots?: boolean;
   schedule: Schedule; configOverrides: DeepPartial<GameConfig> | null;
   members: Member[];
-  clock: { roundOpensAt: string | null; roundDeadline: string | null };
+  clock: { roundOpensAt: string | null; roundDeadline: string | null; middayAt?: string | null };
   version: number; seed: string;
   state: GameState | null;
   disabledReason?: string;

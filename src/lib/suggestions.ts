@@ -14,10 +14,12 @@ export function suggestions(v: PlayerView, base: string): Suggestion[] {
   const pending = v.offers.filter((o) => o.to === v.me.id && o.status === 'pending').length;
   const res = v.me.resources;
 
+  const fresh = v.middayDone ? [...v.intel].reverse().find((r) => r.round === v.round && r.owner === v.me.id && r.confidence !== 'failed') : undefined;
   const msg = [...v.messages].reverse().find((m) => m.to === v.me.id && m.round === v.round);
   const rad = radar(v);
   const th = rad.find((r) => r.kind === 'threat'), ch = rad.find((r) => r.kind === 'chance');
   if (th) out.push({ id: 'threat', title: th.title, text: th.text, href: `${base}/karta?focus=${th.id}`, cta: 'Na kartu', tone: 'bad' });
+  if (fresh) out.push({ id: 'intel', title: 'Izvidnici su se vratili', text: fresh.summary.length > 90 ? fresh.summary.slice(0, 88) + '…' : fresh.summary, href: fresh.territoryId ? `${base}/karta?focus=${fresh.territoryId}` : `${base}/karta`, cta: 'Na kartu', tone: 'good' });
   if (v.dilemma && !v.dilemma.chosen) out.push({ id: 'dilemma', title: `Dilema dana: ${v.dilemma.title}`, text: 'Čeka te odluka s posljedicama — A ili B.', href: base, cta: 'Odluči', tone: 'info' });
   if (v.me.status === 'resistance') out.push({ id: 'resist', title: 'Pokreni ustanak', text: 'Glavni grad je pao. Naredba „Ustanak“ jedini je put natrag.', href: `${base}/naredbe`, cta: 'Naredbe', tone: 'bad' });
   if (v.forecast.foodShortageRisk) out.push({ id: 'food', title: 'Prijeti glad', text: 'Hrana neće pokriti vojsku. Izgradi farmu ili smanji vojsku.', href: `${base}/kraljevstvo`, cta: 'Razvoj', tone: 'bad' });

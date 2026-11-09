@@ -12,6 +12,7 @@ import { describeOrder } from '@/components/game/orderText';
 import { ResourceIcon } from '@/components/art/Resources';
 import { useReady } from '@/components/game/ReadyGuard';
 import { Term } from '@/components/ui/Term';
+import { fmtClock, orderIsMidday, middayPending } from '@/lib/schedule';
 
 const MAIN: OrderType[] = ['recruit', 'build', 'research'];
 const MORE: OrderType[] = ['defend', 'espionage', 'diplomacy', 'trade', 'sabotage'];
@@ -39,6 +40,10 @@ export function OrdersScreen() {
     void post({ action: 'reorder', orderIds: ids });
   };
   const lastResolved = v.orders.filter((o) => o.round === v.round - 1 && o.result);
+  const hasMidday = !!g.meta?.clock.middayAt;
+  const midPending = middayPending(v, g.meta);
+  const middayOut = v.orders.filter((o) => o.round === v.round && (o.status === 'executed' || o.status === 'failed') && o.result);
+  const whenOf = (o: Order) => (!hasMidday ? undefined : orderIsMidday(o) && midPending ? `Podne ${fmtClock(g.meta!.clock.middayAt)}` : `Večer ${fmtClock(g.meta!.clock.roundDeadline)}`);
 
   return (
     <div className="flex-1 overflow-y-auto" data-testid="orders-screen">
@@ -73,7 +78,7 @@ export function OrdersScreen() {
         <section className="space-y-2">
           <SectionTitle icon="orders">Predane naredbe ({active.length})</SectionTitle>
           {active.length === 0 && <Empty title="Nema predanih naredbi" text="Dodaj naredbe ili ostavi kraljevstvo na automatskoj obrani." mood="thinking" />}
-          {active.map((o, i) => <OrderRow key={o.id} o={o} i={i} n={active.length} editable={editable} busy={busy} onEdit={() => o.type !== 'attack' && setComposer({ type: o.type, order: o })} onRemove={() => post({ action: 'remove', orderId: o.id }, 'Naredba uklonjena.')} onMove={(d) => move(o, d)} />)}
+          {active.map((o, i) => <OrderRow key={o.id} when={whenOf(o)} o={o} i={i} n={active.length} editable={editable} busy={busy} onEdit={() => o.type !== 'attack' && setComposer({ type: o.type, order: o })} onRemove={() => post({ action: 'remove', orderId: o.id }, 'Naredba uklonjena.')} onMove={(d) => move(o, d)} />)}
         </section>
 
         {drafts.length > 0 && (<section className="space-y-2">
@@ -92,6 +97,11 @@ export function OrdersScreen() {
               {editable && <button className="h-10 w-10 grid place-items-center rounded-xl text-bad active:bg-red-50" aria-label="Ukloni" onClick={async () => { try { await g.act(`/api/campaigns/${g.id}/conditional`, { action: 'remove', id: c.id }); } catch { /* toast */ } }}><Icon name="close" /></button>}
             </div>))}
         </section></details>
+
+        {middayOut.length > 0 && (
+          <section className="space-y-2" data-testid="midday-outcome"><SectionTitle icon="clock">Podnevni ishod</SectionTitle>
+            {middayOut.map((o) => <div key={o.id} className={`rounded-xl border p-2.5 text-sm font-medium ${o.result!.ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>{describeOrder(v, o).title}: {o.result!.summary}</div>)}
+          </section>)}
 
         {lastResolved.length > 0 && (
           <section className="space-y-2"><SectionTitle icon="report">Ishod prošle runde</SectionTitle>
@@ -118,7 +128,7 @@ export function OrdersScreen() {
   );
 }
 
-function OrderRow({ o, i, n, draft, editable, busy, onEdit, onRemove, onSubmit, onMove }: { o: Order; i: number; n: number; draft?: boolean; editable: boolean; busy: boolean; onEdit: () => void; onRemove: () => void; onSubmit?: () => void; onMove?: (d: -1 | 1) => void }) {
+function OrderRow({ when, o, i, n, draft, editable, busy, onEdit, onRemove, onSubmit, onMove }: { when?: string; o: Order; i: number; n: number; draft?: boolean; editable: boolean; busy: boolean; onEdit: () => void; onRemove: () => void; onSubmit?: () => void; onMove?: (d: -1 | 1) => void }) {
   const g = useGame();
   const v = g.view!;
   const d = describeOrder(v, o);
@@ -129,7 +139,7 @@ function OrderRow({ o, i, n, draft, editable, busy, onEdit, onRemove, onSubmit, 
       <div className="flex-1 min-w-0">
         <div className="font-semibold leading-tight">{d.title}</div>
         <div className="text-sm text-muted font-medium">{d.detail}</div>
-        <div className="mt-1 flex flex-wrap items-center gap-2"><span className="chip chip-yellow">{o.cpCost} ZB</span>{draft ? <span className="chip">Nacrt</span> : o.status === 'locked' ? <span className="chip chip-warn">Zaključano</span> : <span className="chip chip-good">Predano</span>}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-2"><span className="chip chip-yellow">{o.cpCost} ZB</span>{when && !draft && <span className="chip">{when}</span>}{draft ? <span className="chip">Nacrt</span> : o.status === 'locked' ? <span className="chip chip-warn">Zaključano</span> : <span className="chip chip-good">Predano</span>}</div>
         {editable && <div className="mt-2 flex flex-wrap gap-2">
           {draft && onSubmit && <button className="btn btn-yellow btn-sm" disabled={busy} onClick={onSubmit} data-testid="submit-draft">Predaj</button>}
           {o.type !== 'attack' && <button className="btn btn-ghost btn-sm" onClick={onEdit} data-testid="edit-order"><Icon name="settings" size={16} />Uredi</button>}

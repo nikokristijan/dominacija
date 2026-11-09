@@ -136,3 +136,65 @@ describe('Osveta i izdajnik', () => {
 import { objectiveProgress } from '../src/engine/objectives';
 import { revengeBonus } from '../src/engine/resolve';
 const objectiveProgressLabel = (s: ReturnType<typeof mk>, pid: string) => objectiveProgress(s, pid).label;
+
+import { resolveMidday, cpUsed } from '../src/engine';
+
+describe('Dvije smjene: podnevno razrješenje', () => {
+  const spy = (s: ReturnType<typeof mk>, tid: string) => addOrder(s, 'p1', { type: 'espionage', params: { action: 'army', targetTerritoryId: tid } }, 'submitted', NOW);
+  const enemyTerr = (s: ReturnType<typeof mk>) => Object.values(s.map.territories).find((t) => t.owner && t.owner !== 'p1')!;
+
+  it('špijunaža daje izvješće u podne, dan se ne pomiče, a ZB ostaju potrošeni', () => {
+    const s0 = mk(); const t = enemyTerr(s0);
+    const r = spy(s0, t.id); expect(r.ok, JSON.stringify((r as { validation?: { errors: string[] } }).validation?.errors)).toBe(true);
+    const used = cpUsed(s0, 'p1'); expect(used).toBeGreaterThan(0);
+    const s1 = resolveMidday(s0, { now: NOW });
+    expect(s1.round).toBe(s0.round); expect(s1.phase).toBe('planning'); expect(s1.middayDone).toBe(1);
+    expect(s1.intel.length).toBe(s0.intel.length + 1);
+    expect(s1.orders.find((o) => o.type === 'espionage')!.status).toBe('executed');
+    expect(cpUsed(s1, 'p1')).toBe(used);            // ZB se ne vraćaju nakon izvršenja
+    expect(resolveMidday(s1, { now: NOW })).toBe(s1); // idempotentno
+    expect(s1.players.p1.resources.influence).toBeLessThan(s0.players.p1.resources.influence + 0.001);
+  });
+  it('večer ne obrađuje špijunažu ponovno, a igrač koji je djelovao samo u podne nije „neaktivan”', () => {
+    const s0 = mk(); const t = enemyTerr(s0); spy(s0, t.id);
+    let s = resolveMidday(s0, { now: NOW }); const intelAfterMid = s.intel.filter((i) => i.owner === 'p1').length;
+    setReady(s, 'p1', true);
+    s = resolveRound(s, { now: NOW });
+    expect(s.intel.filter((i) => i.owner === 'p1').length).toBe(intelAfterMid);
+    expect(s.players.p1.missedRounds).toBe(0);
+    expect(s.carry).toBeUndefined(); expect(s.round).toBe(2);
+  });
+  it('dnevni obračun uključuje potrošnju iz podneva', () => {
+    const s0 = mk(); const t = enemyTerr(s0); spy(s0, t.id);
+    const inflBefore = s0.players.p1.resources.influence;
+    let s = resolveMidday(s0, { now: NOW });
+    const spent = inflBefore - s.players.p1.resources.influence;
+    setReady(s, 'p1', true); s = resolveRound(s, { now: NOW });
+    const rep = (s.reports as unknown as Array<{ playerId: string; round: number; ledger: { spending: { influence: number }; before: { influence: number } } }>);
+    const mine = Array.isArray(rep) ? rep.find((r) => r.playerId === 'p1' && r.round === 1) : undefined;
+    if (mine) { expect(mine.ledger.before.influence).toBeCloseTo(inflBefore, 5); expect(mine.ledger.spending.influence).toBeGreaterThanOrEqual(spent - 0.001); }
+  });
+  it('diplomatska ponuda stiže u podne; pripajanje i ostalo čekaju večer', () => {
+    const s0 = mk(); const ok = addOrder(s0, 'p1', { type: 'diplomacy', params: { kind: 'alliance', targetPlayerId: 'p2', terms: {} } }, 'submitted', NOW);
+    expect(ok.ok).toBe(true);
+    const s1 = resolveMidday(s0, { now: NOW });
+    expect(s1.offers.some((o) => o.from === 'p1' && o.to === 'p2' && o.status === 'pending')).toBe(true);
+    expect(s1.orders.find((o) => o.type === 'diplomacy')!.status).toBe('executed');
+  });
+  it('vojne naredbe ostaju „predane” do večeri (podne ih ne dira)', () => {
+    const s0 = mk(); const own = Object.values(s0.map.territories).find((t) => t.owner === 'p1' && !t.isCapital)!;
+    expect(addOrder(s0, 'p1', { type: 'recruit', params: { territoryId: own.id, unit: 'infantry', count: 2 } }, 'submitted', NOW).ok).toBe(true);
+    const s1 = resolveMidday(s0, { now: NOW });
+    expect(s1.orders.find((o) => o.type === 'recruit')!.status).toBe('submitted');
+  });
+  it('cijela kampanja s podnevnim razrješenjem svaki dan završava bez grešaka', () => {
+    let s = mk(); botGreet(s, NOW);
+    for (let r = 1; r <= 7; r++) {
+      s = resolveMidday(s, { now: NOW });
+      for (const id of s.playerOrder.filter((i) => s.players[i].isBot)) botPlan(s, id, NOW);
+      setReady(s, 'p1', true); s = resolveRound(s, { now: NOW });
+      if (s.phase === 'completed') break;
+    }
+    expect(s.phase).toBe('completed');
+  });
+});

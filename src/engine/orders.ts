@@ -18,7 +18,8 @@ import {
 export const cpAvailable = (s: GameState, p: PlayerState) => (p.status === 'resistance' ? s.config.resistance.cpPerDay : s.config.campaign.commandPointsPerDay);
 const ACTIVE: OrderStatus[] = ['submitted', 'locked'];
 export const activeOrders = (s: GameState, pid: PlayerId) => s.orders.filter((o) => o.playerId === pid && o.round === s.round && ACTIVE.includes(o.status));
-export const cpUsed = (s: GameState, pid: PlayerId) => activeOrders(s, pid).reduce((n, o) => n + o.cpCost, 0);
+/** Potrošeni ZB: predane/zaključane naredbe + one već izvršene u podnevnom razrješenju (isti dan). */
+export const cpUsed = (s: GameState, pid: PlayerId) => s.orders.filter((o) => o.playerId === pid && o.round === s.round && (ACTIVE.includes(o.status) || o.status === 'executed')).reduce((n, o) => n + o.cpCost, 0);
 
 export function reservedResources(s: GameState, pid: PlayerId, excludeId?: string): Resources {
   const r = emptyResources();

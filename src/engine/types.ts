@@ -244,6 +244,10 @@ export interface GameState {
   resolvedRounds: number[]; // idempotencija
   idCounter: number;
   winnerId: PlayerId | null;
+  /** Podnevno razrješenje (špijunaža + diplomacija) za ovu rundu već je odrađeno. */
+  middayDone?: number;
+  /** Računovodstvo podneva prenosi se u večernje razrješenje (dnevni izvještaj ostaje jedan). */
+  carry?: { round: number; ledger: Record<PlayerId, { before: Resources; spending: Resources; trade: Resources }> };
   history: Array<{ round: number; scores: Record<PlayerId, number>; territories: Record<PlayerId, number> }>;
 }
 

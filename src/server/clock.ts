@@ -31,9 +31,10 @@ export function nextHour(after: Date, hour: number, tz: string, minGapMs = 0): D
   return new Date(after.getTime() + 24 * 3600_000);
 }
 
-export function nextClock(schedule: Schedule, from: Date): { roundOpensAt: string; roundDeadline: string } {
+export function nextClock(schedule: Schedule, from: Date): { roundOpensAt: string; roundDeadline: string; middayAt: string | null } {
+  const mid = schedule.middayHour != null;
   if (schedule.mode === 'dev') {
-    return { roundOpensAt: from.toISOString(), roundDeadline: new Date(from.getTime() + schedule.devPlanningSeconds * 1000).toISOString() };
+    return { roundOpensAt: from.toISOString(), roundDeadline: new Date(from.getTime() + schedule.devPlanningSeconds * 1000).toISOString(), middayAt: mid ? new Date(from.getTime() + schedule.devPlanningSeconds * 500).toISOString() : null };
   }
   const deadline = nextHour(from, schedule.lockHour, schedule.timezone, 2 * 3600_000);
   const opens = nextHour(from, schedule.planningStartHour, schedule.timezone, 0);
@@ -41,5 +42,9 @@ export function nextClock(schedule: Schedule, from: Date): { roundOpensAt: strin
   const opensAt = opens.getTime() > deadline.getTime() ? from : opens.getTime() - from.getTime() > 20 * 3600_000 ? from : opens;
   const dl = deadline;
   const inWindow = from.getTime() >= dl.getTime() - (schedule.lockHour - schedule.planningStartHour) * 3600_000;
-  return { roundOpensAt: (inWindow ? from : opensAt).toISOString(), roundDeadline: dl.toISOString() };
+  const open = inWindow ? from : opensAt;
+  // Podne: prvi nastup tog sata nakon otvaranja runde, ali samo ako je prije zaključavanja
+  let middayAt: string | null = null;
+  if (mid) { const m = nextHour(new Date(Math.max(open.getTime(), from.getTime()) - 1000), schedule.middayHour!, schedule.timezone, 0); if (m.getTime() > open.getTime() - 1 && m.getTime() < dl.getTime() - 30 * 60_000) middayAt = m.toISOString(); }
+  return { roundOpensAt: open.toISOString(), roundDeadline: dl.toISOString(), middayAt };
 }

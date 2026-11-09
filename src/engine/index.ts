@@ -2,7 +2,7 @@ export * from './config';
 export * from './types';
 export { createCampaignState } from './state';
 export type { NewPlayer } from './state';
-export { resolveRound, ACHIEVEMENTS } from './resolve';
+export { resolveRound, resolveMidday, isMiddayOrder, MIDDAY_DIPLOMACY, ACHIEVEMENTS } from './resolve';
 export * from './orders';
 export * from './economy';
 export * from './diplomacy';

@@ -14,6 +14,7 @@ import { suggestions } from '@/lib/suggestions';
 import { useReady } from '@/components/game/ReadyGuard';
 import { Term } from '@/components/ui/Term';
 import { PushPrompt } from '@/components/game/PushPrompt';
+import { fmtClock, middayPending } from '@/lib/schedule';
 
 const SEV: Record<string, string> = { good: 'border-green-200 bg-green-50', bad: 'border-red-200 bg-red-50', warn: 'border-orange-200 bg-orange-50', info: 'border-line bg-white' };
 
@@ -56,8 +57,13 @@ export function Dashboard() {
           <div>
             <div className="label">Dan {v.round} od {v.totalRounds}</div>
             {v.phase === 'completed' ? <div className="text-2xl font-semibold text-primary mt-0.5">Kampanja završena</div> : (<>
-              <div className="text-2xl font-semibold mt-0.5">{planning ? (v.me.ready ? 'Spremno — čekamo ostale' : 'Vrijeme je za planiranje') : 'Razrješenje u tijeku'}</div>
-              {planning && rem !== null && <div className="flex items-center gap-2 mt-1 text-neutral-600 text-sm"><Icon name="clock" size={16} />Zaključavanje za <span className="font-semibold text-primary" data-testid="remaining-big">{formatRemaining(rem)}</span></div>}
+              <div className="text-2xl font-semibold mt-0.5">{planning ? (v.me.ready ? 'Spremno — čekamo ostale' : middayPending(v, meta) ? 'Šalji izvidnike prije podneva' : 'Vrijeme je za planiranje') : 'Razrješenje u tijeku'}</div>
+              {planning && rem !== null && <div className="flex items-center gap-2 mt-1 text-neutral-600 text-sm"><Icon name="clock" size={16} />Večernje razrješenje za <span className="font-semibold text-primary" data-testid="remaining-big">{formatRemaining(rem)}</span></div>}
+              {planning && meta.clock.middayAt && (
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs" data-testid="day-timeline">
+                  <div className={`rounded-xl border p-2.5 ${v.middayDone ? 'border-green-200 bg-green-50' : 'border-primary/40 bg-primary-100/50'}`}><div className="font-semibold flex items-center gap-1.5">{v.middayDone ? <Icon name="check" size={13} stroke={3} /> : <Icon name="clock" size={13} />}Podne · {fmtClock(meta.clock.middayAt)}</div><div className="text-muted mt-0.5">Špijunaža i diplomacija{v.middayDone ? ' — gotovo' : ''}</div></div>
+                  <div className="rounded-xl border border-line p-2.5"><div className="font-semibold flex items-center gap-1.5"><Icon name="swords" size={13} />Večer · {fmtClock(meta.clock.roundDeadline)}</div><div className="text-muted mt-0.5">Napadi, gradnja, novačenje</div></div>
+                </div>)}
               {rem !== null && rem <= 0 && planning && <div className="text-sm text-muted mt-1">Rok je istekao — razrješenje svaki čas…</div>}
             </>)}
           </div>
@@ -147,6 +153,7 @@ export function Dashboard() {
           <section className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 space-y-2" data-testid="dev-tools">
             <div className="label">Razvojni alati (simulacija)</div>
             <div className="grid grid-cols-2 gap-2">
+              {meta.schedule.middayHour != null && !v.middayDone && <button className="btn btn-ghost btn-sm col-span-2" disabled={busy} onClick={async () => { setBusy(true); try { await api(`/api/campaigns/${g.id}/dev`, { action: 'midday' }); await g.refresh(); g.toast('Podnevno razrješenje odrađeno.', 'good'); } catch (e) { g.toast(e instanceof Error ? e.message : 'Greška', 'bad'); } finally { setBusy(false); } }} data-testid="dev-midday"><Icon name="clock" size={16} />Razriješi podne</button>}
               <button className="btn btn-ghost btn-sm" disabled={busy} onClick={async () => { setBusy(true); try { await api(`/api/campaigns/${g.id}/dev`, { action: 'resolve' }); await g.refresh(); g.toast('Runda razriješena.', 'good'); } catch (e) { g.toast(e instanceof Error ? e.message : 'Greška', 'bad'); } finally { setBusy(false); } }} data-testid="dev-resolve"><Icon name="play" size={16} />Razriješi sada</button>
               <button className="btn btn-ghost btn-sm" disabled={busy} onClick={async () => { setBusy(true); try { await api(`/api/campaigns/${g.id}/dev`, { action: 'resolve_all' }); await g.refresh(); g.toast('Cijela kampanja simulirana.', 'good'); } catch (e) { g.toast(e instanceof Error ? e.message : 'Greška', 'bad'); } finally { setBusy(false); } }} data-testid="dev-resolve-all"><Icon name="fast" size={16} />Odigraj sve dane</button>
             </div>

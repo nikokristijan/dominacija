@@ -79,6 +79,7 @@ function FactionPick({ value, onChange }: { value: FactionId | null; onChange: (
 function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onClose: () => void; onCreated: (id: string) => void; setErr: (s: string | null) => void }) {
   const [mode, setMode] = useState<'private' | 'dev'>('private');
   const [pace, setPace] = useState<'fast' | 'daily'>('fast'); const [bots2, setBots2] = useState(true);
+  const [midday, setMidday] = useState(true); const [midHour, setMidHour] = useState(13);
   const [name, setName] = useState('');
   const [min, setMin] = useState(4); const [max, setMax] = useState(6);
   const [faction, setFaction] = useState<FactionId | null>(null);
@@ -90,7 +91,7 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
     setBusy(true); setLocalErr(null);
     try {
       const body: Record<string, unknown> = { name: name || (mode === 'dev' ? 'Testna simulacija' : 'Nova kampanja'), faction: faction ?? undefined, timezone: tz, planningStartHour: start, lockHour: lock };
-      if (mode === 'private') { body.minPlayers = min; body.maxPlayers = Math.max(min, max); body.pace = pace; body.fillBots = bots2; } else body.dev = { bots, planningSeconds: secs };
+      if (mode === 'private') { body.minPlayers = min; body.maxPlayers = Math.max(min, max); body.pace = pace; body.fillBots = bots2; body.midday = midday; body.middayHour = midHour; } else body.dev = { bots, planningSeconds: secs };
       const r = await api<{ campaign: CampaignMeta }>('/api/campaigns', body);
       setErr(null); onCreated(r.campaign.id);
     } catch (e) { setLocalErr(e instanceof Error ? e.message : 'Greška'); } finally { setBusy(false); }
@@ -103,7 +104,7 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
         <Field label="Naziv"><input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder={mode === 'dev' ? 'Testna simulacija' : 'Npr. Subotnji rat'} data-testid="campaign-name" /></Field>
         {mode === 'private' ? (<>
           <Field label="Tempo igre"><Seg value={pace} onChange={setPace} options={[{ value: 'fast', label: 'Brza (dan ≈ 10 min)' }, { value: 'daily', label: 'Dnevna (dan = 24 h)' }]} /></Field>
-          <p className="text-xs text-muted">{pace === 'fast' ? 'Idealno za večer s prijateljima: 7 dana završi za oko sat vremena, a dan se razriješi čim su svi spremni.' : 'Klasično: svaki dan planiraš, naredbe se zaključavaju u zadani sat i razrješavaju istovremeno. Kampanja traje tjedan dana.'}</p>
+          <p className="text-xs text-muted">{pace === 'fast' ? `Idealno za večer s prijateljima: 7 dana završi za oko sat vremena (${midday ? 'podne + večer' : 'jedno razrješenje'} po danu), a dan se razriješi čim su svi spremni.` : 'Klasično: svaki dan planiraš, naredbe se zaključavaju u zadani sat i razrješavaju istovremeno. Kampanja traje tjedan dana.'}</p>
           <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span><span className="block text-sm font-semibold">Popuni prazna mjesta botovima</span><span className="block text-xs text-muted">Možeš igrati i sâm ili s jednim prijateljem. Botovi su jasno označeni.</span></span><input type="checkbox" className="h-5 w-5 accent-[#7138E8]" checked={bots2} onChange={(e) => setBots2(e.target.checked)} data-testid="fill-bots" /></label>
           <Expandable title="Napredne postavke">
             <div className="space-y-3">
@@ -111,6 +112,8 @@ function CreateSheet({ open, onClose, onCreated, setErr }: { open: boolean; onCl
                 <Field label="Min. igrača"><select className="input" value={min} onChange={(e) => setMin(+e.target.value)}>{[4, 5, 6, 7, 8].map((n) => <option key={n}>{n}</option>)}</select></Field>
                 <Field label="Maks. igrača"><select className="input" value={max} onChange={(e) => setMax(+e.target.value)}>{[4, 5, 6, 7, 8].map((n) => <option key={n}>{n}</option>)}</select></Field>
               </div>
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span><span className="block text-sm font-semibold">Podnevno razrješenje</span><span className="block text-xs text-muted">Špijunaža i diplomacija stižu usred dana, ostalo navečer.</span></span><input type="checkbox" className="h-5 w-5 accent-[#7138E8]" checked={midday} onChange={(e) => setMidday(e.target.checked)} data-testid="midday-toggle" /></label>
+              {pace === 'daily' && midday && <Field label="Sat podnevnog razrješenja"><select className="input" value={midHour} onChange={(e) => setMidHour(+e.target.value)}>{Array.from({ length: 22 }, (_, h) => h + 1).filter((h) => h > start && h < lock).map((h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select></Field>}
               {pace === 'daily' && <div className="grid grid-cols-2 gap-3">
                 <Field label="Početak planiranja"><select className="input" value={start} onChange={(e) => setStart(+e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select></Field>
                 <Field label="Zaključavanje naredbi"><select className="input" value={lock} onChange={(e) => setLock(+e.target.value)}>{Array.from({ length: 23 }, (_, h) => <option key={h + 1} value={h + 1}>{String(h + 1).padStart(2, '0')}:00</option>)}</select></Field>

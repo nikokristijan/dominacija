@@ -50,6 +50,8 @@ export interface PlayerView {
   final?: { winnerId: PlayerId | null; scores: ScoreBreakdown[] };
   recentEntries: GameState['reportEntries'];
   scoreBreakdownMine: ScoreBreakdown;
+  /** Podnevno razrješenje za današnju rundu već je odrađeno. */
+  middayDone: boolean;
   /** Današnja dilema (samo vlastita, samo u fazi planiranja). */
   dilemma: { id: string; title: string; text: string; a: { label: string; hint: string }; b: { label: string; hint: string }; chosen: 'a' | 'b' | null; result?: string } | null;
 }
@@ -118,7 +120,7 @@ export function getPlayerView(s: GameState, pid: PlayerId): PlayerView {
     reports: Object.values(s.reports).filter((r) => r.playerId === pid).sort((a, b) => a.round - b.round),
     ranking: rk, history: s.history.map((h) => ({ ...h })), recentEntries: [],
     scoreBreakdownMine: computeScore(s, pid),
-    dilemma: dilemmaView(s, pid),
+    dilemma: dilemmaView(s, pid), middayDone: s.middayDone === s.round,
   };
   if (completed) view.final = { winnerId: s.winnerId, scores: ranking(s) };
   return view;

@@ -38,6 +38,14 @@ Bez ovoga obavijesti rade samo unutar igre. Za obavijesti na mobitelu ("Ana te n
 4. **iPhone:** obavijesti rade tek kad igru dodaš na početni zaslon (Safari → Dijeli → *Dodaj na početni zaslon*) i otvoriš je odatle.
 Ovo je napisano i provjereno jediničnim testom, ali **nije isprobano s pravim push poslužiteljem** — ako ne stigne obavijest, javi mi.
 
+## 5. (Preporučeno) Podnevno razrješenje i push točno na vrijeme
+Igra ima dvije smjene: u podne (zadano 13:00) stižu špijunaža i diplomacija, navečer (20:00) sve ostalo. Razrješenje se odrađuje čim netko otvori igru, ali **push obavijest "Izvidnici su se vratili" u 13:00 traži da netko "pokuca" na server u tom trenutku.** Vercelov besplatni cron radi samo jednom dnevno, pa dodaj besplatni vanjski "pinger":
+1. U Vercelu dodaj varijablu `CRON_SECRET` (bilo koji dugačak nasumičan niz) i napravi Redeploy.
+2. Na [cron-job.org](https://cron-job.org) (besplatno) napravi zadatak koji svakih **5 minuta** otvara adresu
+   `https://TVOJA-ADRESA.vercel.app/api/cron/resolve?secret=TVOJ_CRON_SECRET`
+3. To je sve — server tada sam razrješava podne i večer u zadano vrijeme, a push dolazi bez da itko otvori igru.
+Bez pingera sve radi, samo se razrješenje i obavijest dogode tek kad netko prvi otvori igru nakon zadanog sata.
+
 ## Napomene (iskreno)
 - **Razrješenje runde** događa se kad netko otvori igru nakon isteka roka ili kad oboje označite „Spremno”. Vercel cron (jednom dnevno) je samo zaštita; na besplatnom planu ne može češće.
 - **Pohrana** je jedan JSON dokument u bazi s optimističnim zaključavanjem — sasvim dovoljno za prijatelje i testiranje, ali nije rješenje za tisuće igrača.

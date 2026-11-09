@@ -9,6 +9,7 @@ import { Building } from '@/components/art/Buildings';
 import { ResourceIcon } from '@/components/art/Resources';
 import { UnitIcon } from '@/components/art/Characters';
 import { FACTIONS } from '@/engine/config';
+import { MiddayHint } from './MiddayHint';
 import { useGame } from './GameProvider';
 import { PreviewCard, UnitPicker, freeUnits, CostLine } from './common';
 import { api } from '@/lib/api';
@@ -88,6 +89,7 @@ export function OrderComposer({ type, initial, editingId, onDone, prefillTerrito
 
   return (
     <div className="space-y-4" data-testid={`composer-${type}`}>
+      <MiddayHint type={type} kind={(p as { kind?: string }).kind} />
       {type === 'recruit' && (<>
         <Field label="Teritorij"><select className="input" value={p.territoryId} onChange={(e) => set({ territoryId: e.target.value })}>{terrOpts(mine)}</select></Field>
         <Field label="Vrsta postrojbe">

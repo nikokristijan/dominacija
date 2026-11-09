@@ -7,8 +7,8 @@ import { addConditional, addOrder, removeConditional, removeOrder, reorderOrders
 import { chooseDilemma } from '@/engine/dilemmas';
 import { respondToOffer, sendMessage, terminateAlliance, withdrawOffer } from '@/engine/diplomacy';
 import { createCampaignState } from '@/engine/state';
-import { resolveRound } from '@/engine/resolve';
-import { botPlan, botGreet } from '@/engine/ai';
+import { resolveRound, resolveMidday } from '@/engine/resolve';
+import { botPlan, botGreet, botRespondToOffers } from '@/engine/ai';
 import { getPlayerView, type PlayerView } from '@/engine/view';
 import { ranking } from '@/engine/scoring';
 import { FACTION_IDS, GAME_CONFIG } from '@/engine/config';
@@ -104,7 +104,7 @@ export async function listMyCampaigns(userId: string) {
 }
 
 // ───────────── Stvaranje i ulazak ─────────────
-export async function createCampaign(userId: string, body: { pace?: 'daily' | 'fast'; fillBots?: boolean; name: string; minPlayers: number; maxPlayers: number; faction?: FactionId; timezone: string; planningStartHour: number; lockHour: number; dev?: { bots: number; planningSeconds: number } }) {
+export async function createCampaign(userId: string, body: { midday?: boolean; middayHour?: number; pace?: 'daily' | 'fast'; fillBots?: boolean; name: string; minPlayers: number; maxPlayers: number; faction?: FactionId; timezone: string; planningStartHour: number; lockHour: number; dev?: { bots: number; planningSeconds: number } }) {
   if (body.dev && !devEnabled()) throw new ApiError(403, 'Razvojni način nije dostupan.');
   if (body.minPlayers > body.maxPlayers) throw new ApiError(400, 'Minimalan broj igrača ne može biti veći od maksimalnog.');
   if (body.lockHour <= body.planningStartHour) throw new ApiError(400, 'Sat zaključavanja mora biti nakon početka planiranja.');
@@ -116,10 +116,10 @@ export async function createCampaign(userId: string, body: { pace?: 'daily' | 'f
       id, name: body.name, ownerId: userId, inviteCode: code(), status: 'waiting', createdAt: nowIso(), startedAt: null, completedAt: null,
       minPlayers: body.dev ? Math.max(4, body.dev.bots + 1) : body.minPlayers, maxPlayers: body.dev ? Math.max(4, body.dev.bots + 1) : body.maxPlayers, devSimulation: !!body.dev, isPublic: false, fillBots: !body.dev && !!body.fillBots,
       schedule: body.dev
-        ? { mode: 'dev', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: body.dev.planningSeconds, resolveWhenAllReady: true }
+        ? { mode: 'dev', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: body.dev.planningSeconds, resolveWhenAllReady: true, middayHour: body.midday === false ? null : 12 }
         : body.pace === 'fast'
-          ? { mode: 'dev', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: 600, resolveWhenAllReady: true }
-          : { mode: 'daily', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: 90, resolveWhenAllReady: false },
+          ? { mode: 'dev', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: 600, resolveWhenAllReady: true, middayHour: body.midday === false ? null : 12 }
+          : { mode: 'daily', timezone: body.timezone, planningStartHour: body.planningStartHour, lockHour: body.lockHour, devPlanningSeconds: 90, resolveWhenAllReady: false, middayHour: body.midday !== false && (body.middayHour ?? 13) > body.planningStartHour && (body.middayHour ?? 13) < body.lockHour ? (body.middayHour ?? 13) : null },
       configOverrides: Object.keys(db.balanceOverrides).length ? structuredClone(db.balanceOverrides) : null,
       members: [{ userId, playerId: 'p1', name: prof?.displayName ?? 'Kralj', faction: body.faction ?? prof?.preferredFaction ?? null, isBot: false, joinedAt: nowIso() }],
       clock: { roundOpensAt: null, roundDeadline: null }, version: 1, seed: randomBytes(8).toString('hex'), state: null,
@@ -200,7 +200,20 @@ export async function startCampaign(userId: string, id: string) {
 }
 
 // ───────────── Razrješenje ─────────────
+/** Podnevno razrješenje: botovi odgovaraju na ponude, pa špijunaža i diplomacija. Idempotentno (state.middayDone). */
+function doMidday(db: Db, c: CampaignRecord, now: Date) {
+  const iso = now.toISOString();
+  const st0 = c.state!;
+  if (st0.phase !== 'planning' || st0.middayDone === st0.round) return;
+  if (c.members.some((m) => m.isBot)) for (const m of c.members) if (m.isBot) botRespondToOffers(st0, m.playerId);
+  c.state = resolveMidday(st0, { now: iso });
+  drainNotifications(db, c);
+  c.version++;
+  audit(db, null, 'campaign.midday', `Podnevno razrješenje, runda ${st0.round}`, c.id);
+}
+
 function doResolve(db: Db, c: CampaignRecord, now: Date) {
+  if (c.schedule.middayHour != null && c.state!.middayDone !== c.state!.round) doMidday(db, c, now); // ako nitko nije otvorio igru u podne, podne se nadoknađuje prije večeri
   const st = c.state!;
   const iso = now.toISOString();
   // Botovi (samo razvojne simulacije) planiraju neposredno prije zaključavanja
@@ -247,7 +260,15 @@ export async function tickCampaign(id: string, force = false): Promise<boolean> 
     }
     return false;
   });
-  if (!due) return false;
+  if (!due) {
+    // Podne: razrješi špijunažu i diplomaciju kad dođe vrijeme (večernje razrješenje još nije na redu)
+    const midDue = await store.read((db) => {
+      const c = db.campaigns[id];
+      return !!c && c.status === 'active' && !!c.state && c.state.phase === 'planning' && c.schedule.middayHour != null && c.state.middayDone !== c.state.round && !!c.clock.middayAt && Date.now() >= new Date(c.clock.middayAt).getTime();
+    });
+    if (midDue) await store.tx((db) => { const c = db.campaigns[id]; if (c?.state && c.status === 'active') doMidday(db, c, new Date()); }).catch(async (e) => { await store.tx((db) => logError(db, 'midday', e, { campaignId: id })).catch(() => undefined); });
+    return false;
+  }
   return store.tx((db) => {
     const c = db.campaigns[id];
     if (!c || c.status !== 'active' || !c.state) return false;
@@ -344,12 +365,13 @@ export async function diplomacyActionSvc(userId: string, id: string, body: any) 
 }
 
 // ───────────── Razvojni alati ─────────────
-export async function devAction(userId: string, id: string, action: 'resolve' | 'resolve_all') {
+export async function devAction(userId: string, id: string, action: 'resolve' | 'resolve_all' | 'midday') {
   if (!devEnabled()) throw new ApiError(403, 'Razvojni način nije dostupan.');
   const c = await getStore().read((db) => getCampaign(db, id));
   const user = await getStore().read((db) => db.users[userId]);
   if (!c.devSimulation) throw new ApiError(403, 'Samo za razvojne simulacije.');
   if (c.ownerId !== userId && !user?.isAdmin) throw new ApiError(403, 'Nemaš ovlasti.');
+  if (action === 'midday') { await getStore().tx((db) => { const cc = getCampaign(db, id); if (cc.state && cc.status === 'active') doMidday(db, cc, new Date()); }); return { midday: 1 }; }
   if (action === 'resolve') { await tickCampaign(id, true); return { resolved: 1 }; }
   let n = 0;
   for (let i = 0; i < 8; i++) {

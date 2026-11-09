@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FACTIONS } from '@/engine/config';
 import { Icon, type IconName } from '@/components/art/Icons';
 import { FactionBadge } from '@/components/art/Factions';
@@ -15,6 +15,7 @@ import { ResPill } from './common';
 import { Lobby } from '@/components/screens/Lobby';
 import { HelpSheet } from './HelpSheet';
 import { MorningEdition } from './MorningEdition';
+import { middayPending } from '@/lib/schedule';
 import { AnimatePresence } from 'framer-motion';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { installTutorialApi, uninstallTutorialApi } from '@/components/tutorial/localApi';
@@ -40,6 +41,15 @@ function Inner({ id, children }: { id: string; children: React.ReactNode }) {
   const { meta, view, loading, error, toasts } = g;
   const [edition, setEdition] = useState<number | null>(null);
   const round = view?.round ?? null; const phase = view?.phase ?? null;
+  const midDone = view?.middayDone ?? null;
+  const prevMid = useRef<boolean | null>(null);
+  useEffect(() => {
+    // Podnevni rezultati stigli dok je igrač u aplikaciji: kratka obavijest (push ide odvojeno)
+    if (midDone === null) return;
+    if (prevMid.current === false && midDone === true && id !== 'tutorial') g.toast('Podnevno izvješće je stiglo — izvidnici i poruke.', 'good');
+    prevMid.current = midDone;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [midDone, round]);
   useEffect(() => {
     // Jutarnje izdanje: pri prvom otvaranju nakon razrješenja runde (ne u vodiču; ne pri prvom ulasku u kampanju)
     if (id === 'tutorial' || round === null || phase !== 'planning') return;
@@ -129,7 +139,8 @@ function TopBar({ id }: { id: string }) {
   const myScore = v.ranking.find((r) => r.playerId === v.me.id)?.score ?? 0;
   const pendingOffers = v.offers.filter((o) => o.to === v.me.id && o.status === 'pending').length;
   const [help, setHelp] = useState(false);
-  const phaseText = v.phase === 'completed' ? 'Završeno' : locked ? 'Razrješenje' : rem !== null ? `${formatRemaining(rem)} do zaključavanja` : 'Planiranje';
+  const midAt = middayPending(v, meta) && meta.clock.middayAt ? Date.parse(meta.clock.middayAt) - g.now : null;
+  const phaseText = v.phase === 'completed' ? 'Završeno' : locked ? 'Razrješenje' : midAt !== null && midAt > 0 ? `Podne za ${formatRemaining(midAt)}` : rem !== null ? `${formatRemaining(rem)} do zaključavanja` : 'Planiranje';
   return (
     <header className="shrink-0 bg-white border-b border-line pt-[var(--safe-t)] z-20" data-tour="topbar">
       <div className="flex items-center gap-3 lg:gap-5 xl:gap-6 px-3 lg:px-5 xl:px-6 min-h-14 lg:min-h-[68px]">

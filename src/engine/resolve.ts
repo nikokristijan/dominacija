@@ -53,22 +53,73 @@ const mood = (c: Ctx, pid: PlayerId, m: Mood, strong = false) => {
 };
 const done = (o: Order, ok: boolean, summary: string) => { o.status = ok ? 'executed' : 'failed'; o.result = { ok, summary }; };
 
+function makeCtx(s: GameState, R: number, now: string): Ctx {
+  const c: Ctx = {
+    s, R, now, ledger: {}, lost: {}, conquered: {}, capitalLost: {}, moods: {}, battlesByTarget: new Map(), attackedBy: new Map(),
+    pendingTechs: [], intelOrders: [], noOrders: new Set(),
+  };
+  for (const pid of s.playerOrder) {
+    const p = s.players[pid];
+    c.ledger[pid] = { before: cloneRes(p.resources), production: emptyResources(), taxes: 0, upkeep: emptyResources(), trade: emptyResources(), spending: emptyResources(), after: emptyResources() };
+    c.lost[pid] = 0; c.conquered[pid] = 0; c.capitalLost[pid] = false; c.moods[pid] = 'neutral';
+  }
+  return c;
+}
+
+/** Što se razrješava u podne: špijunaža (sve) i diplomatske ponude/darovi koji ne mijenjaju kartu. Ostalo ide u večernje razrješenje. */
+export const MIDDAY_DIPLOMACY = ['alliance', 'nap', 'trade', 'improve'] as const;
+export const isMiddayOrder = (o: Order) => o.type === 'espionage' || (o.type === 'diplomacy' && (MIDDAY_DIPLOMACY as readonly string[]).includes(o.params.kind));
+
+/**
+ * Podnevno razrješenje: izvidnici se vraćaju, ponude stižu primateljima, prihvaćeni savezi/trgovine se izvršavaju.
+ * Ne pomiče dan, ne dira kartu i idempotentno je. Večernje razrješenje (resolveRound) preuzima ostatak dana.
+ */
+export function resolveMidday(prev: GameState, opts: { now?: string } = {}): GameState {
+  if (prev.phase !== 'planning' || prev.middayDone === prev.round) return prev;
+  const s = structuredClone(prev);
+  const R = s.round;
+  const now = opts.now ?? new Date(0).toISOString();
+  const c = makeCtx(s, R, now);
+  const mid = s.orders.filter((o) => o.round === R && o.status === 'submitted' && isMiddayOrder(o));
+  for (const o of mid) o.status = 'locked';
+  const byType = (t: Order['type']) => mid.filter((o) => o.type === t).sort(orderSort(s));
+  for (const o of byType('espionage')) {
+    if (o.type !== 'espionage') continue;
+    if (o.params.action === 'counter' || o.params.action === 'false_info') {
+      if (!pay(c, o.playerId, orderRes(s, o))) { done(o, false, 'Nedovoljno resursa.'); continue; }
+      if (o.params.action === 'counter') { s.players[o.playerId].counterIntelUntil = R; done(o, true, 'Protuobavještajne mjere aktivne danas.'); }
+      else { setDisinfo(s, o.playerId); done(o, true, 'Lažne informacije su pušteni u promet.'); }
+    } else c.intelOrders.push(o);
+  }
+  processDiplomacy(c, byType('diplomacy'));
+  executeAcceptedOffers(c, MIDDAY_DIPLOMACY);
+  runIntel(c);
+  // Obavijest svakome čija je naredba stigla do rezultata
+  for (const pid of s.playerOrder) {
+    const mine = mid.filter((o) => o.playerId === pid && o.status === 'executed');
+    const spy = mine.find((o) => o.type === 'espionage' && o.params.action !== 'counter' && o.params.action !== 'false_info');
+    if (spy?.result) notify(s, { playerId: pid, kind: 'resolution', title: 'Izvidnici su se vratili', body: spy.result.summary.slice(0, 110) });
+    else if (mine.some((o) => o.type === 'diplomacy')) notify(s, { playerId: pid, kind: 'diplomatic', title: 'Podnevno izvješće', body: 'Tvoje diplomatske poruke su stigle do primatelja.' });
+  }
+  for (const pid of s.playerOrder) c.ledger[pid].after = cloneRes(s.players[pid].resources);
+  s.carry = { round: R, ledger: Object.fromEntries(s.playerOrder.map((pid) => [pid, { before: cloneRes(c.ledger[pid].before), spending: cloneRes(c.ledger[pid].spending), trade: cloneRes(c.ledger[pid].trade) }])) };
+  s.middayDone = R;
+  return s;
+}
+
 export function resolveRound(prev: GameState, opts: { now?: string } = {}): GameState {
   if (prev.phase === 'completed' || prev.resolvedRounds.includes(prev.round)) return prev; // idempotencija
   const s = structuredClone(prev);
   const R = s.round;
   const now = opts.now ?? new Date(0).toISOString();
   s.phase = 'resolution';
-  const c: Ctx = {
-    s, R, now, ledger: {}, lost: {}, conquered: {}, capitalLost: {}, moods: {}, battlesByTarget: new Map(), attackedBy: new Map(),
-    pendingTechs: [], intelOrders: [], noOrders: new Set(),
-  };
+  const c = makeCtx(s, R, now);
   const scoreBefore: Record<PlayerId, number> = {};
-  for (const pid of s.playerOrder) {
-    const p = s.players[pid];
-    c.ledger[pid] = { before: cloneRes(p.resources), production: emptyResources(), taxes: 0, upkeep: emptyResources(), trade: emptyResources(), spending: emptyResources(), after: emptyResources() };
-    c.lost[pid] = 0; c.conquered[pid] = 0; c.capitalLost[pid] = false; c.moods[pid] = 'neutral';
-    scoreBefore[pid] = publicScore(s, pid);
+  for (const pid of s.playerOrder) scoreBefore[pid] = publicScore(s, pid);
+  // Večernje razrješenje nastavlja dnevni obračun započet u podne
+  if (s.carry?.round === R) for (const pid of s.playerOrder) {
+    const k = s.carry.ledger[pid]; if (!k) continue;
+    c.ledger[pid].before = cloneRes(k.before); c.ledger[pid].spending = cloneRes(k.spending); c.ledger[pid].trade = cloneRes(k.trade);
   }
 
   lockOrders(c);
@@ -173,27 +224,7 @@ export function resolveRound(prev: GameState, opts: { now?: string } = {}): Game
   // 10) Dolasci (novaci, gradnje, tehnologije)
   processArrivals(c);
   // 11) Obavještajni izvještaji (stanje na početku nove runde)
-  for (const o of c.intelOrders.sort(orderSort(s))) {
-    if (o.type !== 'espionage') continue;
-    if (!pay(c, o.playerId, orderRes(s, o))) { done(o, false, 'Nedovoljno resursa.'); continue; }
-    const r = gatherIntel(s, o.playerId, o.params, now);
-    if (r.ok) {
-      s.intel.push(r.report);
-      done(o, true, r.report.summary);
-      emit(s, R, 'espionage', r.report.summary, [o.playerId], 'info', { mood: 'thinking' });
-      mood(c, o.playerId, 'thinking');
-    } else {
-      const tp = o.params.targetPlayerId ?? (o.params.targetTerritoryId ? s.map.territories[o.params.targetTerritoryId].owner : null);
-      done(o, false, 'Špijun je uhvaćen.');
-      s.intel.push({ id: nextId(s, 'i'), owner: o.playerId, target: tp, territoryId: o.params.targetTerritoryId, kind: o.params.action, round: R, createdAt: now, confidence: 'failed', data: {}, summary: 'Špijun je uhvaćen — nema podataka.' });
-      emit(s, R, 'espionage', `Tvoj špijun je uhvaćen${tp ? ` u kraljevstvu ${pname(s, tp)}` : ''}. Nema novih podataka.`, [o.playerId], 'warn', { mood: 'surprised' });
-      if (tp) {
-        s.players[tp].stats.spiesCaught++;
-        const identified = r.ratio < s.config.espionage.lowRatio * 0.85;
-        emit(s, R, 'espionage', identified ? `Uhvaćen je špijun iz kraljevstva ${pname(s, o.playerId)}!` : 'Uhvaćen je špijun nepoznatog podrijetla.', [tp], 'info', { mood: 'confident' });
-      }
-    }
-  }
+  runIntel(c);
   // 12) Postignuća, bodovi, izvješća, nova runda
   updateObjectivesAndAchievements(c);
   s.scores = computeAllScores(s);
@@ -203,6 +234,7 @@ export function resolveRound(prev: GameState, opts: { now?: string } = {}): Game
   if (R === 3 && s.playerOrder.some((id) => s.players[id].objective.type === 'traitor')) emit(s, R, 'event', 'Glasine: među kraljevstvima šapće se da netko planira izdaju. Čuvaj leđa — i savez nije jamstvo.', s.playerOrder, 'warn');
   buildReports(c, scoreBefore);
   advance(c);
+  s.carry = undefined;
   s.resolvedRounds.push(R);
   return s;
 }
@@ -236,6 +268,8 @@ function lockOrders(c: Ctx) {
       if (o.status === 'submitted') { o.status = 'locked'; submitted++; }
       else if (o.status === 'draft') { o.status = 'cancelled'; o.result = { ok: false, summary: 'Nacrt nije predan prije isteka roka.' }; }
     }
+    const actedAtMidday = s.orders.some((o) => o.playerId === pid && o.round === R && (o.status === 'executed' || o.status === 'failed'));
+    if (actedAtMidday) submitted++;
     if (submitted === 0 && !p.ready) {
       p.missedRounds++;
       c.noOrders.add(pid);
@@ -269,6 +303,31 @@ function breakPact(c: Ctx, breaker: PlayerId, other: PlayerId, reason: string) {
 }
 
 // ───────────────────────── Diplomacija ─────────────────────────
+function runIntel(c: Ctx) {
+  const { s, R, now } = c;
+  for (const o of c.intelOrders.sort(orderSort(s))) {
+    if (o.type !== 'espionage') continue;
+    if (!pay(c, o.playerId, orderRes(s, o))) { done(o, false, 'Nedovoljno resursa.'); continue; }
+    const r = gatherIntel(s, o.playerId, o.params, now);
+    if (r.ok) {
+      s.intel.push(r.report);
+      done(o, true, r.report.summary);
+      emit(s, R, 'espionage', r.report.summary, [o.playerId], 'info', { mood: 'thinking' });
+      mood(c, o.playerId, 'thinking');
+    } else {
+      const tp = o.params.targetPlayerId ?? (o.params.targetTerritoryId ? s.map.territories[o.params.targetTerritoryId].owner : null);
+      done(o, false, 'Špijun je uhvaćen.');
+      s.intel.push({ id: nextId(s, 'i'), owner: o.playerId, target: tp, territoryId: o.params.targetTerritoryId, kind: o.params.action, round: R, createdAt: now, confidence: 'failed', data: {}, summary: 'Špijun je uhvaćen — nema podataka.' });
+      emit(s, R, 'espionage', `Tvoj špijun je uhvaćen${tp ? ` u kraljevstvu ${pname(s, tp)}` : ''}. Nema novih podataka.`, [o.playerId], 'warn', { mood: 'surprised' });
+      if (tp) {
+        s.players[tp].stats.spiesCaught++;
+        const identified = r.ratio < s.config.espionage.lowRatio * 0.85;
+        emit(s, R, 'espionage', identified ? `Uhvaćen je špijun iz kraljevstva ${pname(s, o.playerId)}!` : 'Uhvaćen je špijun nepoznatog podrijetla.', [tp], 'info', { mood: 'confident' });
+      }
+    }
+  }
+}
+
 function processDiplomacy(c: Ctx, orders: Order[]) {
   const { s, R } = c;
   const annexes = new Map<TerritoryId, Order[]>();
@@ -321,9 +380,9 @@ function processDiplomacy(c: Ctx, orders: Order[]) {
   }
 }
 
-function executeAcceptedOffers(c: Ctx) {
+function executeAcceptedOffers(c: Ctx, kinds?: readonly string[]) {
   const { s, R } = c;
-  for (const o of s.offers.filter((x) => x.status === 'accepted').sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const o of s.offers.filter((x) => x.status === 'accepted' && (!kinds || kinds.includes(x.kind))).sort((a, b) => a.id.localeCompare(b.id))) {
     const A = s.players[o.from], B = s.players[o.to];
     const fail = (t: string) => { o.status = 'failed'; o.resultText = t; emit(s, R, 'diplomacy', `${kindLabel(o.kind)} (${A.name} ↔ ${B.name}) nije izvršen: ${t}`, [A.id, B.id], 'warn'); };
     if (o.kind === 'trade') {
