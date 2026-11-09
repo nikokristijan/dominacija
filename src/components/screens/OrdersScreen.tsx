@@ -10,6 +10,8 @@ import { ConditionalComposer, ACTION_LABEL, TRIGGER_LABEL } from '@/components/g
 import { CostLine } from '@/components/game/common';
 import { describeOrder } from '@/components/game/orderText';
 import { ResourceIcon } from '@/components/art/Resources';
+import { useReady } from '@/components/game/ReadyGuard';
+import { Term } from '@/components/ui/Term';
 
 const MAIN: OrderType[] = ['recruit', 'build', 'research'];
 const MORE: OrderType[] = ['defend', 'espionage', 'diplomacy', 'trade', 'sabotage'];
@@ -22,6 +24,7 @@ export function OrdersScreen() {
   const [cond, setCond] = useState(false);
   const [busy, setBusy] = useState(false);
   const planning = v.phase === 'planning';
+  const ready = useReady();
   const editable = planning && !v.me.ready;
   const orders = v.orders.filter((o) => o.round === v.round && o.status !== 'cancelled').sort((a, b) => a.priority - b.priority);
   const active = orders.filter((o) => o.status === 'submitted' || o.status === 'locked');
@@ -42,7 +45,7 @@ export function OrdersScreen() {
       <div className="max-w-3xl mx-auto p-3 lg:p-5 space-y-4">
         <section className="card space-y-3">
           <div className="flex items-center justify-between"><h1 className="text-2xl">Operacije · dan {v.round}</h1><span className={`chip ${v.me.ready ? 'chip-good' : 'chip-yellow'}`} data-testid="ready-chip">{v.me.ready ? 'Spremno' : planning ? 'Planiranje' : 'Zaključano'}</span></div>
-          <div className="flex items-center gap-3"><ResourceIcon name="command" size={30} className="text-neutral-500" /><div className="flex-1"><div className="flex justify-between font-semibold text-sm"><span>Zapovjedni bodovi</span><span data-testid="cp-used">{v.cp.used} / {v.cp.available}</span></div><Progress value={v.cp.used} max={v.cp.available} color="bg-primary" /></div></div>
+          <div className="flex items-center gap-3"><ResourceIcon name="command" size={30} className="text-neutral-500" /><div className="flex-1"><div className="flex justify-between font-semibold text-sm"><span><Term id="zb">Zapovjedni bodovi</Term></span><span data-testid="cp-used">{v.cp.used} / {v.cp.available}</span></div><Progress value={v.cp.used} max={v.cp.available} color="bg-primary" /></div></div>
           <p className="text-xs font-semibold text-muted">Naredbe su privatne do razrješenja. Resursi se rezerviraju pri predaji, a nacrti ne troše ništa. Predane naredbe možeš mijenjati do roka ili dok ne označiš „spremno”.</p>
         </section>
 
@@ -98,7 +101,7 @@ export function OrdersScreen() {
         {planning && (
           <section className="card space-y-2 sticky bottom-2">
             <div className="flex items-center gap-3"><Icon name={v.me.ready ? 'lock' : 'unlock'} size={26} className="text-primary" /><div className="flex-1 text-sm font-medium">{v.me.ready ? 'Konačni popis je zaključan. Možeš ga otključati do isteka roka.' : 'Označi popis kao konačan kad završiš. Nacrti se ne izvršavaju.'}</div></div>
-            <button className={`btn w-full ${v.me.ready ? 'btn-ghost' : 'btn-yellow'}`} disabled={busy} onClick={() => post({ action: 'ready', ready: !v.me.ready }, v.me.ready ? 'Naredbe otključane.' : 'Naredbe zaključane — čekaj razrješenje.')} data-testid="lock-orders"><Icon name={v.me.ready ? 'unlock' : 'lock'} size={18} />{v.me.ready ? 'Otključaj naredbe' : 'Zaključaj konačni popis'}</button>
+            <button className={`btn w-full ${v.me.ready ? 'btn-ghost' : 'btn-yellow'}`} disabled={busy} onClick={ready.toggle} data-testid="lock-orders"><Icon name={v.me.ready ? 'unlock' : 'lock'} size={18} />{v.me.ready ? 'Otključaj naredbe' : 'Zaključaj konačni popis'}</button>
           </section>)}
       </div>
 
@@ -106,6 +109,7 @@ export function OrdersScreen() {
         {composer && <><h2 className="text-2xl  mb-1 flex items-center gap-2"><Icon name={ORDER_LABELS[composer.type].icon} />{ORDER_LABELS[composer.type].name}</h2><p className="text-sm text-muted mb-3">{ORDER_LABELS[composer.type].desc}</p>
           <OrderComposer key={composer.order?.id ?? composer.type} type={composer.type} editingId={composer.order?.id} initial={composer.order ? ({ type: composer.order.type, params: composer.order.params } as OrderInput) : undefined} onDone={() => setComposer(null)} /></>}
       </Sheet>
+      {ready.dialog}
       <Sheet open={cond} onClose={() => setCond(false)} title="Uvjetna naredba" tall>
         <h2 className="text-2xl  mb-3">Nova uvjetna naredba</h2>
         {cond && <ConditionalComposer onDone={() => setCond(false)} />}

@@ -14,6 +14,7 @@ await step('priprema', async () => {
   await p.waitForURL(/\/k\//); await p.waitForSelector('[data-testid=dashboard]'); await p.waitForTimeout(500);
   if (await p.locator('[data-testid=morning-edition]').count()) throw new Error('izdanje se ne smije pojaviti pri prvom ulasku');
 });
+await step('dnevna dilema: odabir se primjenjuje', async () => { await p.waitForSelector('[data-testid=dilemma]'); await p.click('[data-testid=dilemma-b]'); await p.waitForSelector('[data-testid=dilemma] >> text=Odlučeno'); });
 await step('rank-strip na početnoj', async () => { await p.waitForSelector('[data-testid=rank-strip]'); });
 await step('botovi se javljaju prvi dan', async () => { await p.waitForSelector('[data-testid=suggestions]'); const t = await p.locator('[data-testid=suggestions]').textContent(); if (!t.includes('ti piše')) throw new Error('nema poruke bota: ' + t.slice(0, 200)); });
 await step('razrješenje → izdanje', async () => {

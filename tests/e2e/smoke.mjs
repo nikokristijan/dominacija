@@ -73,7 +73,7 @@ await step('tech', async () => { await p.goto(campaignUrl + '/tehnologija'); awa
 await step('kingdom', async () => { await p.goto(campaignUrl + '/kraljevstvo'); await p.waitForSelector('[data-testid=kingdom-screen]'); await p.click('[data-testid=tax-low]'); await p.waitForSelector('text=Porezna razina promijenjena'); await shot('15-kingdom'); });
 await step('profile+more+ranking', async () => { await p.goto(campaignUrl + '/profil'); await p.waitForSelector('[data-testid=profile-screen]'); await shot('16-profile'); await p.goto(campaignUrl + '/vise'); await p.waitForSelector('[data-testid=more-screen]'); await shot('17-more'); await p.goto(campaignUrl + '/ljestvica'); await p.waitForSelector('[data-testid=ranking-screen]'); });
 await step('lock+resolve', async () => {
-  await p.goto(campaignUrl); await p.waitForSelector('[data-testid=dev-resolve]'); await p.click('[data-testid=ready-toggle]'); await p.waitForTimeout(600);
+  await p.goto(campaignUrl); await p.waitForSelector('[data-testid=dev-resolve]'); await p.click('[data-testid=ready-toggle]'); await p.locator('[data-testid=ready-confirm]').click({ timeout: 1500 }).catch(() => undefined); await p.waitForTimeout(600);
   await p.click('[data-testid=dev-resolve]'); await p.waitForSelector('text=Dan 2 / 7'); await p.waitForTimeout(700); await shot('18-day2');
   await p.goto(campaignUrl + '/izvjestaji'); await p.waitForSelector('[data-testid=report-screen]'); await shot('19-report');
 });

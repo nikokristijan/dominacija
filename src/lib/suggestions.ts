@@ -18,6 +18,7 @@ export function suggestions(v: PlayerView, base: string): Suggestion[] {
   const rad = radar(v);
   const th = rad.find((r) => r.kind === 'threat'), ch = rad.find((r) => r.kind === 'chance');
   if (th) out.push({ id: 'threat', title: th.title, text: th.text, href: `${base}/karta?focus=${th.id}`, cta: 'Na kartu', tone: 'bad' });
+  if (v.dilemma && !v.dilemma.chosen) out.push({ id: 'dilemma', title: `Dilema dana: ${v.dilemma.title}`, text: 'Čeka te odluka s posljedicama — A ili B.', href: base, cta: 'Odluči', tone: 'info' });
   if (v.me.status === 'resistance') out.push({ id: 'resist', title: 'Pokreni ustanak', text: 'Glavni grad je pao. Naredba „Ustanak“ jedini je put natrag.', href: `${base}/naredbe`, cta: 'Naredbe', tone: 'bad' });
   if (v.forecast.foodShortageRisk) out.push({ id: 'food', title: 'Prijeti glad', text: 'Hrana neće pokriti vojsku. Izgradi farmu ili smanji vojsku.', href: `${base}/kraljevstvo`, cta: 'Razvoj', tone: 'bad' });
   if (v.forecast.rebellionWarning !== 'none') out.push({ id: 'stab', title: 'Stabilnost pada', text: 'Snizi poreze ili izgradi hram prije nego izbije pobuna.', href: `${base}/kraljevstvo`, cta: 'Razvoj', tone: v.forecast.rebellionWarning === 'red' ? 'bad' : 'warn' });

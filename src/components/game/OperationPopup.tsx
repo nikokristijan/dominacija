@@ -7,6 +7,7 @@ import { Icon } from '@/components/art/Icons';
 import { ResourceIcon } from '@/components/art/Resources';
 import { Stepper, Field, Expandable } from '@/components/ui/kit';
 import { api } from '@/lib/api';
+import { Term } from '@/components/ui/Term';
 import { useGame } from './GameProvider';
 import { PreviewCard, UnitPicker, freeUnits } from './common';
 import { adjacentOwned } from './TerritoryDetails';
@@ -120,7 +121,7 @@ export function OperationPopup({ target, from, setTarget, setFrom, onClose }: { 
         <div className="rounded-xl border border-line p-3 space-y-2"><div className="label">Rezerva — ostaje u {src?.name}</div><UnitPicker view={v} available={afterSend} value={reserve} onChange={setReserve} /></div>
         <div className="space-y-2"><div className="label">Strategija</div>{STRAT.map((s) => { const i = issue(s.id); return <Choice key={s.id} active={strategy === s.id} disabled={!!i} onClick={() => setStrategy(s.id)} title={s.name} desc={i ?? s.desc} tag={s.tag} testId={`strategy-${s.id}`} />; })}</div>
 
-        <div className="space-y-2"><div className="label">Formacija</div>{FORM.map((f) => <Choice key={f.id} active={formation === f.id} onClick={() => setFormation(f.id)} title={f.name} desc={f.desc} testId={`formation-${f.id}`} />)}</div>
+        <div className="space-y-2"><div className="label"><Term id="formacija">Formacija</Term></div>{FORM.map((f) => <Choice key={f.id} active={formation === f.id} onClick={() => setFormation(f.id)} title={f.name} desc={f.desc} testId={`formation-${f.id}`} />)}</div>
         <div className="space-y-2"><div className="label">Sklonost riziku</div><div className="grid grid-cols-3 gap-2">{RISK.map((r) => <button key={r.id} type="button" onClick={() => { setRisk(r.id); setRetreat(Math.round(v.config.combat.risk[r.id].defaultRetreat * 100)); }} className={`rounded-xl border p-2.5 text-left ${risk === r.id ? 'border-ink bg-neutral-50' : 'border-line'}`}><b className="text-sm">{r.name}</b><div className="text-[11px] text-muted leading-tight mt-0.5">{r.desc}</div></button>)}</div></div>
       
 

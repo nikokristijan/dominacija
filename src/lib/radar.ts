@@ -1,5 +1,6 @@
 import type { PlayerView } from '@/engine/view';
 import { unitTotal } from '@/engine/util';
+import { rewardText } from '@/engine/camps';
 
 export interface RadarHit { id: string; kind: 'threat' | 'chance'; title: string; text: string; ratio: number }
 
@@ -38,7 +39,9 @@ export function radar(v: PlayerView): RadarHit[] {
     const near = nbrs(v, t.id).filter((n) => n.owner === v.me.id);
     if (!near.length) continue;
     const best = Math.max(...near.map((n) => unitTotal(n.garrison ?? {})));
-    if (best >= 4 && e * 1.6 <= best) {
+    if (t.camp && best >= 5 && e * 1.15 <= best) {
+      chance.set(t.id, { id: t.id, kind: 'chance', title: `Kamp s plijenom: ${t.name}`, text: `${t.camp.name} (plijen: ${rewardText(t.camp.reward)}). Straža ~${Math.round(e)}, a ti kraj njega imaš ${best}.`, ratio: best / Math.max(1, e) + 1 });
+    } else if (best >= 4 && e * 1.6 <= best) {
       const who = t.owner ? v.players[t.owner]?.name ?? 'Protivnik' : 'neutralni';
       chance.set(t.id, { id: t.id, kind: 'chance', title: `Prilika: ${t.name}`, text: `Slabo branjen (~${Math.round(e)}), a ti kraj njega imaš ${best}. (${who})`, ratio: best / Math.max(1, e) });
     }

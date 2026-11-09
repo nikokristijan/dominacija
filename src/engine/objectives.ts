@@ -14,13 +14,15 @@ export const OBJECTIVES: ObjDef[] = [
   { type: 'defeat_stronger', title: () => 'David protiv Golijata', description: () => 'Pobijedi u napadu protiv igrača koji trenutno ima više bodova od tebe.' },
   { type: 'stability', title: () => 'Mirna vladavina', description: (p) => `Završi kampanju sa stabilnošću ≥ ${p.final} i nikad ne padni ispod ${p.floor}.` },
   { type: 'merchant', title: () => 'Veliki trgovac', description: (p) => `Provedi ${p.count} trgovačkih razmjena (tržište ili igrači).` },
+  { type: 'traitor', title: () => 'Izdajnik', description: () => 'Sklopi savez pa ga izdaj (raskini ili napadni saveznika) i nakon toga osvoji barem jedan teritorij. Samo jedan igrač u kampanji ima ovaj cilj.' },
   { type: 'scholar', title: () => 'Mudri učenjak', description: (p) => `Istraži ${p.count} tehnologija.` },
 ];
 
 export function assignObjective(s: GameState, pid: PlayerId, taken: Set<ObjectiveType>): SecretObjective {
   const rng = createRng(`${s.seed}:obj:${pid}`);
-  const options = OBJECTIVES.filter((o) => !taken.has(o.type) || taken.size >= OBJECTIVES.length);
-  const def = rng.pick(options.length ? options : OBJECTIVES);
+  const pool = OBJECTIVES.filter((o) => o.type !== 'traitor'); // izdajnika dodjeljuje posebno pravilo (najviše jedan)
+  const options = pool.filter((o) => !taken.has(o.type) || taken.size >= pool.length);
+  const def = rng.pick(options.length ? options : pool);
   taken.add(def.type);
   const params: Record<string, number | string> = {};
   if (def.type === 'mines') params.count = 3;
@@ -65,6 +67,7 @@ export function objectiveProgress(s: GameState, pid: PlayerId): ObjectiveProgres
       return { current: Math.round(p.stability), target: o.params.final as number, done: ok, label: `Stabilnost ${Math.round(p.stability)} (najniže ${Math.round(o.params.minSeen as number)})` };
     }
     case 'merchant': return { current: p.stats.tradesDone, target: o.params.count as number, done: p.stats.tradesDone >= (o.params.count as number), label: `${p.stats.tradesDone}/${o.params.count} razmjena` };
+    case 'traitor': { const b = o.params.base as number | undefined; const n = b === undefined ? 0 : p.stats.territoriesCaptured - b; const done = b !== undefined && n >= 1; return { current: done ? 1 : 0, target: 1, done, label: b === undefined ? 'Još nisi izdao saveznika' : done ? 'Izdaja se isplatila' : 'Izdao si — osvoji teritorij' }; }
     case 'scholar': return { current: p.techs.length, target: o.params.count as number, done: p.techs.length >= (o.params.count as number), label: `${p.techs.length}/${o.params.count} tehnologija` };
   }
 }

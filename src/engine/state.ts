@@ -1,9 +1,10 @@
 /** Stvaranje početnog stanja kampanje (pošteni početni uvjeti za sve igrače). */
+import { placeCamps } from './camps';
 import { FACTION_IDS, FACTIONS, mergeConfig, type DeepPartial, type GameConfig } from './config';
 import { generateEventSchedule, announceEvent } from './events';
 import { generateMap } from './mapgen';
-import { assignObjective } from './objectives';
-import { createRng } from './rng';
+import { assignObjective, OBJECTIVES } from './objectives';
+import { createRng, hash01 } from './rng';
 import { computeAllScores } from './scoring';
 import type { FactionId, GameState, ObjectiveType, PlayerId, PlayerState } from './types';
 import { cloneRes } from './util';
@@ -47,7 +48,7 @@ export function createCampaignState(opts: { campaignId: string; seed: string; pl
       reputation: { score: cfg.diplomacy.reputation.start, brokenTreaties: 0, keptTreaties: 0, betrayals: 0, tradeCount: 0, supportsGiven: 0 },
       stats: { attacksLaunched: 0, battlesWon: 0, battlesLost: 0, defensesWon: 0, territoriesCaptured: 0, territoriesLost: 0, capitalsCaptured: 0, unitsLost: 0, unitsKilled: 0, spiesCaught: 0, researchDone: 0, tradesDone: 0, peakTerritories: 3 },
       objective: undefined as never, ready: false, submittedOnce: false, missedRounds: 0, autopilot: false, rebellionWarned: false,
-      disinfo: null, counterIntelUntil: 0, resistance: null, achievements: [], lastIncome: cloneRes({}), joinedAt: now,
+      disinfo: null, counterIntelUntil: 0, resistance: null, achievements: [], lastIncome: cloneRes({}), joinedAt: now, dilemmas: {}, grudges: {},
     };
   });
 
@@ -57,8 +58,16 @@ export function createCampaignState(opts: { campaignId: string; seed: string; pl
     events: generateEventSchedule(opts.seed, cfg, map), battles: [], reportEntries: [], reports: {}, notificationsOut: [], scores: {},
     resolvedRounds: [], idCounter: 0, winnerId: null, history: [],
   };
+  placeCamps(state);
   const takenObj = new Set<ObjectiveType>();
   for (const id of state.playerOrder) players[id].objective = assignObjective(state, id, takenObj);
+  if (state.playerOrder.length >= 5) {
+    // Tajni izdajnik: najviše jedan igrač (determinirano iz sjemena) — ostali sumnjaju, nitko ne zna tko
+    const idx = Math.floor(hash01(`${state.seed}:traitor`) * state.playerOrder.length);
+    const tp = players[state.playerOrder[idx]];
+    const def = OBJECTIVES.find((o) => o.type === 'traitor')!;
+    tp.objective = { id: `obj-${tp.id}`, type: 'traitor', title: def.title({}, state), description: def.description({}, state), params: {}, completed: false };
+  }
   announceEvent(state, 1);
   state.scores = computeAllScores(state);
   state.history.push({

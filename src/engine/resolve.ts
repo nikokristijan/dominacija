@@ -4,6 +4,7 @@
  * Redoslijed: zaključavanje → protuobavještajne mjere → sabotaža → diplomacija → trgovina → istraživanje/gradnja/novačenje
  *   → obrana → vojne operacije (uz uvjetne naredbe) → ekonomija → dolasci → obavještajni izvještaji → bodovi → izvještaji → nova runda.
  */
+import { rewardText } from './camps';
 import { RESOURCE_TYPES, UNIT_TYPES } from './config';
 import { adjustReputation, decayReputation, kindLabel } from './diplomacy';
 import {
@@ -198,6 +199,8 @@ export function resolveRound(prev: GameState, opts: { now?: string } = {}): Game
   s.scores = computeAllScores(s);
   for (const pid of s.playerOrder) c.ledger[pid].after = cloneRes(s.players[pid].resources);
   s.history.push({ round: R, scores: Object.fromEntries(s.playerOrder.map((id) => [id, s.scores[id].total - s.scores[id].objective])), territories: Object.fromEntries(s.playerOrder.map((id) => [id, s.scores[id].territoryCount])) });
+  // Glasine o izdajniku (samo ako ga u kampanji uistinu ima): napetost bez otkrivanja tko je
+  if (R === 3 && s.playerOrder.some((id) => s.players[id].objective.type === 'traitor')) emit(s, R, 'event', 'Glasine: među kraljevstvima šapće se da netko planira izdaju. Čuvaj leđa — i savez nije jamstvo.', s.playerOrder, 'warn');
   buildReports(c, scoreBefore);
   advance(c);
   s.resolvedRounds.push(R);
@@ -256,6 +259,8 @@ function breakPact(c: Ctx, breaker: PlayerId, other: PlayerId, reason: string) {
   al.status = 'broken'; al.endedRound = c.R; al.endedBy = breaker;
   const b = s.players[breaker];
   const betrayal = al.kind === 'alliance';
+  addGrudge(s, other, breaker, betrayal ? 3 : 2);
+  if (betrayal && b.objective.type === 'traitor' && b.objective.params.base === undefined) b.objective.params.base = b.stats.territoriesCaptured;
   if (betrayal) b.reputation.betrayals++; else b.reputation.brokenTreaties++;
   adjustReputation(s, b, betrayal ? s.config.diplomacy.reputation.betrayal : s.config.diplomacy.reputation.brokenTreaty);
   emit(s, c.R, 'diplomacy', betrayal ? `IZDAJA! ${b.name} je prekršio savez s kraljevstvom ${pname(s, other)} (${reason}).` : `${b.name} je prekršio sporazum o nenapadanju s ${pname(s, other)} (${reason}).`, s.playerOrder.filter((id) => !al.secret || id === breaker || id === other), 'bad', { mood: 'surprised' });
@@ -301,6 +306,7 @@ function processDiplomacy(c: Ctx, orders: Order[]) {
     for (const o of sorted) {
       if (won || t.owner) { done(o, false, 'Teritorij je pripojio netko drugi.'); emit(s, R, 'diplomacy', `Pripajanje ${t.name} nije uspjelo — drugi igrač je bio brži.`, [o.playerId], 'warn'); continue; }
       if (!neighborIds(s, tid).some((n) => s.map.territories[n].owner === o.playerId)) { done(o, false, 'Teritorij više nije uz tvoje kraljevstvo.'); continue; }
+      if (t.camp) { done(o, false, 'Razbojnički kamp mora se razbiti silom.'); continue; }
       if (!pay(c, o.playerId, orderRes(s, o))) { done(o, false, 'Nedovoljno utjecaja.'); continue; }
       t.owner = o.playerId; t.stability = 60;
       const keep = s.config.diplomacy.annexNativeKeep;
@@ -380,6 +386,7 @@ function processMilitary(c: Ctx, attacks: Order[], resistance: Order[]) {
       playerId: o.playerId, fromId: from.id, units, strategy: o.params.strategy, formation: o.params.formation, risk: o.params.risk,
       retreatBelow: o.params.retreatBelow, supplyRatio: s.config.combat.supply[o.params.supply].ratio,
       mods: getMods(p), stability: p.stability, intelConfidence: intelConf(s, o.playerId, target.id), betrayal: !!(o as any)._betrayal, resistance: p.status === 'resistance',
+      revenge: target.owner ? revengeBonus(p, target.owner) : 0,
     };
     forcesAll.push({ f, o, targetId: target.id });
     const arr = c.battlesByTarget.get(target.id) ?? []; arr.push(f); c.battlesByTarget.set(target.id, arr);
@@ -463,6 +470,11 @@ function processMilitary(c: Ctx, attacks: Order[], resistance: Order[]) {
       for (const id of attackerIds) { s.players[id].stats.unitsLost += lostA / attackerIds.length; s.players[id].stats.unitsKilled += lostD / attackerIds.length; }
       if (dp) { dp.stats.unitsLost += lostD; dp.stats.unitsKilled += lostA; }
       const attackerNames = attackerIds.map((id) => pname(s, id)).join(' i ');
+      // Dugovi osvete: napadnuti pamti napadača; napadač koji je uzvratio i pobijedio naplaćuje dug
+      if (defenderId) for (const id of attackerIds) {
+        addGrudge(s, defenderId, id, result.outcome === 'attacker_victory' ? 2 : 1);
+        if (result.outcome === 'attacker_victory' && s.players[id].grudges?.[defenderId]) { s.players[id].grudges[defenderId] = 0; emit(s, R, 'military', `Osveta! Dug prema ${pname(s, defenderId)} je naplaćen.`, [id], 'good'); }
+      }
       // Pobjeda napadača
       if (result.outcome === 'attacker_victory') {
         const winner = primary.playerId;
@@ -567,6 +579,13 @@ function retreatSurvivors(c: Ctx, owner: PlayerId, fromTid: TerritoryId, survivo
   dest.garrison = addUnits(dest.garrison, out);
 }
 
+/** Bonus osvete: 5% po bodu duga, najviše 15%. */
+export const revengeBonus = (p: PlayerState, against: PlayerId) => Math.min(0.15, (p.grudges?.[against] ?? 0) * 0.05);
+export function addGrudge(s: GameState, holder: PlayerId, against: PlayerId, n: number) {
+  const h = s.players[holder]; if (!h || holder === against) return;
+  h.grudges ??= {}; h.grudges[against] = Math.min(5, (h.grudges[against] ?? 0) + n);
+}
+
 function captureTerritory(c: Ctx, tid: TerritoryId, winner: PlayerId, prevOwner: PlayerId | null) {
   const { s, R } = c;
   const t = s.map.territories[tid];
@@ -576,6 +595,13 @@ function captureTerritory(c: Ctx, tid: TerritoryId, winner: PlayerId, prevOwner:
   t.defenseLevel = Math.max(0, t.defenseLevel - 1);
   if (t.building === 'fortress' || t.building === 'barracks') { t.buildingLevel -= 1; if (t.buildingLevel <= 0) { t.building = null; t.buildingLevel = 0; } }
   const w = s.players[winner];
+  if (!prevOwner && t.camp) {
+    const camp = t.camp; t.camp = null;
+    gain(c, winner, camp.reward);
+    const loot = rewardText(camp.reward);
+    emit(s, R, 'military', `Razbijen je kamp kod ${t.name}! Plijen: ${loot}.`, [winner], 'good', { refs: { territoryId: tid }, mood: 'celebrating' });
+    emit(s, R, 'military', `${w.name} je razbio razbojnički kamp kod ${t.name}.`, s.playerOrder.filter((id) => id !== winner), 'info', { refs: { territoryId: tid } });
+  }
   w.stats.territoriesCaptured += prevOwner ? 1 : 0;
   w.stats.peakTerritories = Math.max(w.stats.peakTerritories, playerTerritories(s, winner).length);
   c.conquered[winner]++;

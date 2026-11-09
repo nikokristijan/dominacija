@@ -54,8 +54,8 @@ const DecorLayer = memo(function DecorLayer({ c, selected, fog }: { c: Cell; sel
   return <g transform={`translate(${cx} ${cy - lift})`} opacity={fog ? 0.88 : 1} pointerEvents="none">{terrainDecor(t.terrain, t.id, SIZE)}</g>;
 });
 
-interface MarkProps { c: Cell; selected: boolean; showName: boolean; armyLabel?: string; fog: boolean; mine: boolean; unsupplied: boolean; production: boolean; hl?: Highlight; badge?: 'threat' | 'chance' }
-const MarkLayer = memo(function MarkLayer({ c, selected, showName, armyLabel, fog, mine, unsupplied, production, hl, badge }: MarkProps) {
+interface MarkProps { c: Cell; selected: boolean; showName: boolean; armyLabel?: string; fog: boolean; mine: boolean; unsupplied: boolean; production: boolean; hl?: Highlight; badge?: 'threat' | 'chance'; camp?: boolean }
+const MarkLayer = memo(function MarkLayer({ c, selected, showName, armyLabel, fog, mine, unsupplied, production, hl, badge, camp }: MarkProps) {
   const { t, cx, cy, rel, borders } = c;
   if (t.terrain === 'water') return null;
   const lift = selected ? 5 : 0;
@@ -93,6 +93,7 @@ const MarkLayer = memo(function MarkLayer({ c, selected, showName, armyLabel, fo
         </g>
       )}
       {showName && <text transform={`translate(${cx} ${gy + 30})`} textAnchor="middle" fontSize="9.5" fontWeight="650" fill="#171717" stroke="#fff" strokeWidth="3.2" paintOrder="stroke" strokeLinejoin="round">{t.name}</text>}
+      {camp && <g transform={`translate(${cx - 17} ${gy - 20})`}><circle r="8.5" fill="#C9A24A" stroke="#fff" strokeWidth="1.6" /><g color="#fff" transform="translate(-5 -5)"><Icon name="flag" size={10} stroke={2.4} /></g></g>}
       {badge && (
         <g>
           <path className="pulse-ring" d={pathFor(cx, cy, SIZE - 3, lift)} fill="none" stroke={badge === 'threat' ? '#D1453B' : '#2F9E62'} strokeWidth="3" />
@@ -390,7 +391,7 @@ export const HexMap = memo(function HexMap({ view, selectedId, onSelect, highlig
               else if (t.owner && t.visibility === 'far') armyLabel = '?';
             }
             return <MarkLayer key={t.id} c={c} selected={selectedId === t.id} showName={false} armyLabel={armyLabel} fog={t.visibility === 'far'}
-              mine={t.owner === meId} unsupplied={t.owner === meId && t.supplied === false} production={overlay === 'production'} hl={highlights?.[t.id]} badge={badges?.[t.id]} />;
+              mine={t.owner === meId} unsupplied={t.owner === meId && t.supplied === false} production={overlay === 'production'} hl={highlights?.[t.id]} badge={badges?.[t.id]} camp={!!t.camp} />;
           })}
           <g pointerEvents="none">
             {arrows.map((a, i) => {

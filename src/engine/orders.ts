@@ -236,6 +236,7 @@ export function validateOrder(s: GameState, pid: PlayerId, input: OrderInput, op
         const t = T(o.params.targetTerritoryId);
         if (!t || t.terrain === 'water') { fail('Odaberi neutralni teritorij.'); break; }
         if (t.owner) fail('Pripajanje je moguće samo za neutralne teritorije.');
+        if (t.camp) fail('Razbojnički kamp mora se razbiti silom — mirno pripajanje nije moguće.');
         if (!neighborIds(s, t.id).some((n) => s.map.territories[n].owner === pid)) fail('Teritorij mora biti uz tvoje kraljevstvo.');
         if (activeOrders(s, pid).some((x) => x.type === 'diplomacy' && x.params.kind === 'annex' && x.params.targetTerritoryId === t.id && x.id !== opts.excludeId)) fail('Već planiraš pripojiti ovaj teritorij.');
         break;

@@ -12,6 +12,7 @@ import type {
   Reputation, Resources, TerrainType, TerritoryEffect, TerritoryId, Units, WorldEvent, ResourceType, ScoreBreakdown,
 } from './types';
 import { botPersonality, PERSONA_LABEL } from './ai';
+import { dilemmaFor, describeEffects } from './dilemmas';
 import { activeAlliance, computeSupply, playerTerritories, unitTotal } from './util';
 
 export interface TerritoryView {
@@ -20,6 +21,8 @@ export interface TerritoryView {
   building?: BuildingType | null; buildingLevel?: number; construction?: { building: BuildingType; level: number; completesRound: number } | null;
   defenseLevel?: number; garrison?: Units; armyEstimate?: GarrisonEstimate; population?: number; stability?: number;
   production?: TerritoryProduction; supplied?: boolean; effects?: TerritoryEffect[]; siegeProgress?: number;
+  /** Kamp je javan mamac (vidi se na karti i bez obavještajnih podataka). */
+  camp?: { name: string; reward: Partial<Resources> } | null;
 }
 export interface PublicPlayer {
   id: PlayerId; name: string; faction: FactionId; isBot: boolean; status: PlayerState['status']; score: number; territoryCount: number; cityCount: number;
@@ -29,6 +32,8 @@ export interface PublicPlayer {
   ready: boolean;
   /** Karakter bota (ratoboran/graditelj/diplomat) — vidljiv jer su botovi jasno označeni. */
   persona?: string;
+  /** Koliko ti taj igrač zamjera (dug osvete prema tebi, 0..5) — javno jer se vidi iz poruka i ponašanja. */
+  grudge: number;
   resources?: undefined;
 }
 export interface PlayerView {
@@ -45,6 +50,15 @@ export interface PlayerView {
   final?: { winnerId: PlayerId | null; scores: ScoreBreakdown[] };
   recentEntries: GameState['reportEntries'];
   scoreBreakdownMine: ScoreBreakdown;
+  /** Današnja dilema (samo vlastita, samo u fazi planiranja). */
+  dilemma: { id: string; title: string; text: string; a: { label: string; hint: string }; b: { label: string; hint: string }; chosen: 'a' | 'b' | null; result?: string } | null;
+}
+
+function dilemmaView(s: GameState, pid: PlayerId): PlayerView['dilemma'] {
+  if (s.phase !== 'planning') return null;
+  const d = dilemmaFor(s, pid, s.round);
+  const chosen = s.players[pid].dilemmas?.[s.round] ?? null;
+  return { id: d.id, title: d.title, text: d.text, a: { label: d.a.label, hint: describeEffects(d.a.effects) }, b: { label: d.b.label, hint: describeEffects(d.b.effects) }, chosen, result: chosen ? (chosen === 'a' ? d.a : d.b).result : undefined };
 }
 
 export function getPlayerView(s: GameState, pid: PlayerId): PlayerView {
@@ -57,6 +71,7 @@ export function getPlayerView(s: GameState, pid: PlayerId): PlayerView {
     const v: TerritoryView = {
       id, name: t.name, col: t.col, row: t.row, terrain: t.terrain, resource: t.resource, owner: t.owner, visibility: vis,
       isCapital: t.isCapital, capitalOf: t.capitalOf, regionId: t.regionId, importance: t.importance,
+      camp: t.camp && !t.owner ? { name: t.camp.name, reward: t.camp.reward } : null,
     };
     if (t.terrain !== 'water') {
       if (vis === 'own') {
@@ -82,7 +97,7 @@ export function getPlayerView(s: GameState, pid: PlayerId): PlayerView {
       territoryCount: playerTerritories(s, id).length, cityCount: playerTerritories(s, id).filter((t) => t.isCapital || t.building === 'city').length,
       capitalId: p.capitalId,
       reputation: { score: p.reputation.score, brokenTreaties: p.reputation.brokenTreaties, keptTreaties: p.reputation.keptTreaties, betrayals: p.reputation.betrayals, tradeCount: p.reputation.tradeCount, supportsGiven: p.reputation.supportsGiven },
-      relation: id === pid ? 'self' : visibleAl ? (al!.kind === 'alliance' ? 'ally' : 'pact') : 'neutral', autopilot: p.autopilot, ready: p.ready, persona: p.isBot ? PERSONA_LABEL[botPersonality(s, id)] : undefined,
+      relation: id === pid ? 'self' : visibleAl ? (al!.kind === 'alliance' ? 'ally' : 'pact') : 'neutral', autopilot: p.autopilot, ready: p.ready, persona: p.isBot ? PERSONA_LABEL[botPersonality(s, id)] : undefined, grudge: id === pid ? 0 : p.grudges?.[pid] ?? 0,
     };
   }
   const mine = (a: PlayerId, b: PlayerId) => a === pid || b === pid;
@@ -103,6 +118,7 @@ export function getPlayerView(s: GameState, pid: PlayerId): PlayerView {
     reports: Object.values(s.reports).filter((r) => r.playerId === pid).sort((a, b) => a.round - b.round),
     ranking: rk, history: s.history.map((h) => ({ ...h })), recentEntries: [],
     scoreBreakdownMine: computeScore(s, pid),
+    dilemma: dilemmaView(s, pid),
   };
   if (completed) view.final = { winnerId: s.winnerId, scores: ranking(s) };
   return view;

@@ -46,6 +46,8 @@ export interface Territory {
   isolatedDays: number;
   /** Privremeni učinci (sabotaža, utvrđivanje): vrijede do kraja navedene runde. */
   effects: TerritoryEffect[];
+  /** Razbojnički kamp (neutralni): jača straža + plijen pri razbijanju. */
+  camp?: { kind: 'treasury' | 'armory' | 'storehouse' | 'shrine'; name: string; reward: Partial<Resources> } | null;
 }
 export interface TerritoryEffect { kind: 'sabotaged_production' | 'entrenched' | 'plague'; untilRound: number; by?: PlayerId }
 
@@ -92,6 +94,10 @@ export interface PlayerState {
   /** Rezervirani resursi zbog predanih naredbi računaju se izvedeno. */
   lastIncome: Resources;
   joinedAt: string;
+  /** Odabiri dnevnih dilema po rundi. */
+  dilemmas: Record<number, 'a' | 'b'>;
+  /** Dugovi osvete: koliko ti je koji igrač „dužan” (0..5). Uzvrat napada daje bonus dok se dug ne naplati. */
+  grudges: Record<PlayerId, number>;
 }
 
 export interface SecretObjective {
@@ -102,7 +108,7 @@ export interface SecretObjective {
   params: Record<string, number | string>;
   completed: boolean;
 }
-export type ObjectiveType = 'mines' | 'capture_capital' | 'alliances' | 'region' | 'gold' | 'defeat_stronger' | 'stability' | 'merchant' | 'scholar';
+export type ObjectiveType = 'mines' | 'capture_capital' | 'alliances' | 'region' | 'gold' | 'defeat_stronger' | 'stability' | 'merchant' | 'scholar' | 'traitor';
 
 // ───────────────────────── Naredbe ─────────────────────────
 export type OrderType = 'recruit' | 'trade' | 'build' | 'defend' | 'espionage' | 'diplomacy' | 'attack' | 'sabotage' | 'research' | 'resistance';

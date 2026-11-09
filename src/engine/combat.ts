@@ -15,6 +15,8 @@ export interface Force {
   /** Omjer opskrbe 0..1.4 (1 = standardne zalihe). */
   supplyRatio: number;
   mods: Mods; stability: number; intelConfidence: number; betrayal: boolean; resistance: boolean;
+  /** Bonus osvete (0..0.15) kad napadač uzvraća protivniku koji mu je ostao dužan. */
+  revenge?: number;
 }
 export interface Defender {
   playerId: PlayerId | null; units: Units; mods: Mods; stability: number; entrenched: boolean; isolated: boolean; pressure: boolean;
@@ -77,7 +79,8 @@ export function forcePower(cfg: GameConfig, f: Force, target: BattleTerritory, e
   const weather = ctx.storm ? cfg.combat.stormAttackFactor : 1;
   const betrayal = f.betrayal ? 1 + cfg.combat.betrayalSurprise : 1;
   const resist = f.resistance ? 1 + cfg.combat.resistanceBonus : 1;
-  return { power: base * strat * risk * supply * morale * weather * betrayal * resist, base, supply, morale, risk, strat, weather, betrayal, resist };
+  const revenge = 1 + (f.revenge ?? 0);
+  return { power: base * strat * risk * supply * morale * weather * betrayal * resist * revenge, base, supply, morale, risk, strat, weather, betrayal, resist, revenge };
 }
 
 export function defenderPower(cfg: GameConfig, d: Defender, t: BattleTerritory, attackers: Units, attackerMods: Mods[], ctx: BattleContext, siegeStrategy: boolean) {
@@ -169,6 +172,7 @@ export function resolveBattle(forces: Force[], defender: Defender, t: BattleTerr
   if (f0.weather !== 1) push('Oluja', f0.weather, 'attacker');
   if (f0.betrayal !== 1) push('Iznenađenje (izdaja saveznika)', f0.betrayal, 'attacker');
   if (f0.resist !== 1) push('Borba otpora', f0.resist, 'attacker');
+  if (f0.revenge !== 1) push('Osveta (naplata duga)', f0.revenge, 'attacker');
   if (forces.length > 1) push('Koordinirani napad', coalition, 'attacker');
   const comp = counterFactor(cfg, UNIT_TYPES.find((u) => primary.units[u])!, defender.units);
   push('Sastav postrojbi (protivnici)', comp, 'attacker');

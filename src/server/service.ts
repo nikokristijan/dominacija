@@ -4,6 +4,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { addConditional, addOrder, removeConditional, removeOrder, reorderOrders, setReady, setTax, submitDraft, updateOrder, previewOrder } from '@/engine/orders';
+import { chooseDilemma } from '@/engine/dilemmas';
 import { respondToOffer, sendMessage, terminateAlliance, withdrawOffer } from '@/engine/diplomacy';
 import { createCampaignState } from '@/engine/state';
 import { resolveRound } from '@/engine/resolve';
@@ -286,6 +287,7 @@ export async function orderActionSvc(userId: string, id: string, body: any) {
       case 'submit': { const r = submitDraft(st, pid, body.orderId, now); if (!r.ok) throw new ApiError(422, r.validation.errors[0] ?? 'Naredba nije valjana.', r.validation); return { order: r.order, validation: r.validation }; }
       case 'reorder': { if (!reorderOrders(st, pid, body.orderIds)) throw new ApiError(422, 'Redoslijed se ne može mijenjati.'); return { ok: true }; }
       case 'ready': { const r = setReady(st, pid, body.ready); if (!r.ok) throw new ApiError(422, r.error!); return { ok: true }; }
+      case 'dilemma': { const r = chooseDilemma(st, pid, body.choice); if (!r.ok) throw new ApiError(422, r.error!); return { ok: true, summary: r.summary }; }
       case 'tax': { const r = setTax(st, pid, body.tax); if (!r.ok) throw new ApiError(422, r.error!); return { ok: true }; }
     }
     throw new ApiError(400, 'Nepoznata akcija.');

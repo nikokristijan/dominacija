@@ -4,6 +4,7 @@
  * Nema fetch-a, nema računa, ništa se ne sprema — vježba je potpuno odvojena od pravih kampanja.
  */
 import { addConditional, addOrder, previewOrder, removeConditional, removeOrder, reorderOrders, setReady, setTax, submitDraft, updateOrder } from '@/engine/orders';
+import { chooseDilemma } from '@/engine/dilemmas';
 import { respondToOffer, sendMessage, terminateAlliance, withdrawOffer } from '@/engine/diplomacy';
 import { createCampaignState } from '@/engine/state';
 import { resolveRound } from '@/engine/resolve';
@@ -74,6 +75,7 @@ export function installTutorialApi() {
             case 'submit': { const r = submitDraft(s, 'p1', body.orderId, iso()); if (!r.ok) fail(r.validation.errors[0] ?? 'Naredba nije valjana.', r.validation); return { order: r.order }; }
             case 'reorder': reorderOrders(s, 'p1', body.orderIds); return { ok: true };
             case 'ready': { const r = setReady(s, 'p1', body.ready); if (!r.ok) fail(r.error!); return { ok: true }; }
+            case 'dilemma': { const r = chooseDilemma(s, 'p1', body.choice); if (!r.ok) fail(r.error!); return { ok: true, summary: r.summary }; }
             case 'tax': { const r = setTax(s, 'p1', body.tax); if (!r.ok) fail(r.error!); return { ok: true }; }
           }
           return fail('Nepoznata akcija.');

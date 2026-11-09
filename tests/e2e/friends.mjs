@@ -32,8 +32,8 @@ await step('vlasnik pokreće (botovi popunjavaju)', async () => {
 });
 await step('status spremnosti prijatelja vidljiv', async () => { await a.waitForSelector('[data-testid=ready-strip]'); const t = await a.locator('[data-testid=ready-strip]').textContent(); if (!t.includes('Prijatelj')) throw new Error(t); });
 await step('oboje spremni → dan 2 (botovi igraju)', async () => {
-  await a.click('[data-testid=ready-toggle]'); await a.waitForTimeout(500);
-  await f.click('[data-testid=ready-toggle]');
+  await a.click('[data-testid=ready-toggle]'); await a.locator('[data-testid=ready-confirm]').click({ timeout: 1500 }).catch(() => undefined); await a.waitForTimeout(500);
+  await f.click('[data-testid=ready-toggle]'); await f.locator('[data-testid=ready-confirm]').click({ timeout: 1500 }).catch(() => undefined);
   await f.waitForSelector('text=Dan 2', { timeout: 20000 });
   await a.reload(); await a.waitForSelector('text=Dan 2', { timeout: 20000 });
 });

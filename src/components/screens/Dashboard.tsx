@@ -11,6 +11,8 @@ import { api } from '@/lib/api';
 import { useState } from 'react';
 import { EventIcon } from '@/components/art/Effects';
 import { suggestions } from '@/lib/suggestions';
+import { useReady } from '@/components/game/ReadyGuard';
+import { Term } from '@/components/ui/Term';
 
 const SEV: Record<string, string> = { good: 'border-green-200 bg-green-50', bad: 'border-red-200 bg-red-50', warn: 'border-orange-200 bg-orange-50', info: 'border-line bg-white' };
 
@@ -38,7 +40,9 @@ export function Dashboard() {
     if (v.me.status === 'resistance') warnings.push({ t: 'Tvoj glavni grad je pao! Kraljevstvo je u stanju Otpora — pokreni ustanak.', sev: 'bad', href: `${base}/naredbe` });
     if (!v.me.submittedOnce && v.round > 1) warnings.push({ t: 'Još nisi predao naredbe — ako ne djeluješ, kraljevstvo prelazi u automatsku obranu.', sev: 'warn', href: `${base}/naredbe` });
   }
-  const setReady = async (ready: boolean) => { setBusy(true); try { await g.act(`/api/campaigns/${g.id}/orders`, { action: 'ready', ready }, { successMsg: ready ? 'Naredbe označene kao spremne.' : 'Naredbe otključane.' }); } catch { /* toast */ } finally { setBusy(false); } };
+  const ready = useReady();
+  const [choosing, setChoosing] = useState(false);
+  const choose = async (choice: 'a' | 'b') => { setChoosing(true); try { await g.act(`/api/campaigns/${g.id}/orders`, { action: 'dilemma', choice }, { successMsg: 'Odluka donesena.' }); } catch { /* toast */ } finally { setChoosing(false); } };
   const sugg = suggestions(v, base);
   const planning = v.phase === 'planning';
   return (
@@ -61,11 +65,11 @@ export function Dashboard() {
               {v.playerOrder.filter((id) => id !== v.me.id && !v.players[id].isBot).map((id) => { const pl = v.players[id]; const ok = pl.ready; return <span key={id} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${ok ? 'border-green-200 bg-green-50 text-green-800' : 'border-line text-neutral-600'}`}><span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-good' : 'bg-neutral-300'}`} />{pl.name}{!ok && ' razmišlja…'}</span>; })}
             </div>)}
           {planning && (<div className="space-y-2.5">
-            <div className="flex items-center justify-between text-sm"><span className="text-muted">Zapovjedni bodovi danas</span><span className="font-semibold" data-testid="cp-chip">{v.cp.used}/{v.cp.available} ZB</span></div>
+            <div className="flex items-center justify-between text-sm"><span className="text-muted"><Term id="zb">Zapovjedni bodovi</Term> danas</span><span className="font-semibold" data-testid="cp-chip">{v.cp.used}/{v.cp.available} ZB</span></div>
             <Progress value={v.cp.used} max={v.cp.available} />
             <div className="grid grid-cols-2 gap-2 pt-1">
               <Link href={`${base}/naredbe`} className="btn btn-purple" data-testid="plan-orders">Naredbe ({orders.length + drafts.length})</Link>
-              <button className={`btn ${v.me.ready ? 'btn-ghost' : 'btn-yellow'}`} disabled={busy} onClick={() => setReady(!v.me.ready)} data-testid="ready-toggle"><Icon name={v.me.ready ? 'unlock' : 'lock'} size={16} />{v.me.ready ? 'Otključaj' : 'Spremno'}</button>
+              <button className={`btn ${v.me.ready ? 'btn-ghost' : 'btn-yellow'}`} disabled={ready.busy} onClick={ready.toggle} data-testid="ready-toggle"><Icon name={v.me.ready ? 'unlock' : 'lock'} size={16} />{v.me.ready ? 'Otključaj' : 'Spremno'}</button>
             </div>
           </div>)}
           {v.phase === 'completed' && <Link href={`${base}/rezultati`} className="btn btn-yellow w-full">Pogledaj konačne rezultate</Link>}
@@ -103,6 +107,21 @@ export function Dashboard() {
           </section>
         )}
 
+        {/* Dnevna dilema */}
+        {v.dilemma && (
+          <section className="card space-y-3" data-testid="dilemma">
+            <SectionTitle icon="scroll" right={v.dilemma.chosen ? <span className="chip chip-good">Odlučeno</span> : <span className="chip chip-yellow">Danas</span>}>{v.dilemma.title}</SectionTitle>
+            <p className="text-sm text-neutral-600">{v.dilemma.text}</p>
+            {v.dilemma.chosen ? <div className="rounded-xl bg-neutral-50 p-3 text-sm"><b>{v.dilemma.chosen === 'a' ? v.dilemma.a.label : v.dilemma.b.label}.</b> {v.dilemma.result}</div> : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(['a', 'b'] as const).map((k) => { const o = v.dilemma![k]; return (
+                  <button key={k} className="text-left rounded-xl border border-line p-3 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50" disabled={choosing || v.phase !== 'planning'} onClick={() => choose(k)} data-testid={`dilemma-${k}`}>
+                    <span className="block font-semibold">{o.label}</span><span className="block text-xs text-muted mt-0.5">{o.hint}</span>
+                  </button>); })}
+              </div>)}
+          </section>
+        )}
+
         {/* Događaj i tajni cilj u jednom retku */}
         {(ev && ev.type !== 'none') && (
           <section className="card flex items-start gap-3"><EventIcon type={ev.type} size={36} /><div className="min-w-0"><div className="font-semibold">Danas: {ev.title}</div><div className="text-sm text-muted">{ev.description}</div>{ev.effects.map((e, i) => <span key={i} className="chip mt-1.5 mr-1">{e}</span>)}{nextEv && nextEv.type !== 'none' && <div className="text-xs text-muted mt-1.5">Sutra: <b className="text-ink">{nextEv.title}</b></div>}</div></section>
@@ -131,6 +150,7 @@ export function Dashboard() {
           </section>
         )}
       </div>
+      {ready.dialog}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { ConditionalComposer } from '@/components/game/ConditionalComposer';
 import { OperationPopup } from '@/components/game/OperationPopup';
 import { useIsDesktop } from '@/lib/useMediaQuery';
 import { radar } from '@/lib/radar';
+import { useReady } from '@/components/game/ReadyGuard';
 import { sfx } from '@/lib/sfx';
 import { buildReplay, type ReplayStep } from '@/lib/replay';
 
@@ -29,6 +30,7 @@ export function MapScreen() {
   const [zoomSignal, setZoomSignal] = useState(0);
   const sel = g.selected ? v.territories[g.selected] : null;
   const desktop = useIsDesktop();
+  const ready = useReady();
 
   // Ponavljanje bitki prošle runde: kamera ide od jedne do druge, strelice marširaju, pa ishod
   const [replay, setReplay] = useState<{ list: ReplayStep[]; i: number; stage: 'march' | 'result' } | null>(null);
@@ -102,7 +104,7 @@ export function MapScreen() {
     { icon: 'layers', label: `Sloj: ${overlay === 'owners' ? 'vlasnici' : overlay === 'regions' ? 'regije' : 'proizvodnja'}`, onClick: cycle, tour: 'layers' },
     { icon: 'swords', label: 'Vojna operacija', active: !!op, onClick: () => (op ? setOp(null) : startOp(sel && sel.owner !== v.me.id ? sel.id : null)), tour: 'tool-op' },
     { icon: 'flask', label: 'Istraživanje', href: `/k/${g.id}/tehnologija` },
-    ...(v.phase === 'planning' ? [{ icon: (v.me.ready ? 'unlock' : 'lock') as IconName, label: v.me.ready ? 'Otključaj naredbe' : 'Zaključaj naredbe (spremno)', active: v.me.ready, onClick: () => { void g.act(`/api/campaigns/${g.id}/orders`, { action: 'ready', ready: !v.me.ready }, { successMsg: v.me.ready ? 'Naredbe otključane.' : 'Naredbe označene kao spremne.' }).catch(() => undefined); }, tour: 'tool-ready' }] : []),
+    ...(v.phase === 'planning' ? [{ icon: (v.me.ready ? 'unlock' : 'lock') as IconName, label: v.me.ready ? 'Otključaj naredbe' : 'Zaključaj naredbe (spremno)', active: v.me.ready, onClick: ready.toggle, tour: 'tool-ready' }] : []),
   ];
 
   return (
@@ -150,6 +152,7 @@ export function MapScreen() {
           </div>);
       })()}
 
+      {ready.dialog}
       {/* kontekstualni popupi */}
       <Sheet open={!!sel && !op && !composer} onClose={() => g.select(null)} title="Teritorij" side modeless>
         {sel && <TerritoryDetails key={sel.id} t={sel} onAction={(type, id) => setComposer({ type, territoryId: id })} onOperation={(id) => startOp(id)} />}

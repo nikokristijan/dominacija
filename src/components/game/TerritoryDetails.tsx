@@ -8,8 +8,10 @@ import { ResourceIcon } from '@/components/art/Resources';
 import { UnitIcon } from '@/components/art/Characters';
 import { ActionRow, Progress, Seg } from '@/components/ui/kit';
 import { fmtRange } from '@/engine/intel';
+import { rewardText } from '@/engine/camps';
 import { unitTotal } from '@/engine/util';
 import { timeAgo } from '@/lib/format';
+import { Term } from '@/components/ui/Term';
 import { useGame } from './GameProvider';
 import { REL } from './HexMap';
 import type { TerritoryView } from '@/engine/view';
@@ -64,6 +66,7 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
       </div>
       <div className="flex items-center gap-2 text-sm font-semibold flex-wrap">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1"><span className="h-2 w-2 rounded-full" style={{ background: relCol }} />{mine ? 'Tvoj teritorij' : owner ? `${owner.name}${owner.relation === 'ally' ? ' · saveznik' : ''}` : 'Neutralni stanovnici'}</span>
+        {t.owner && !mine && (v.me.grudges?.[t.owner] ?? 0) > 0 && <span className="chip chip-good" data-testid="revenge-chip"><Term id="osveta">Osveta</Term> +{Math.round((v.me.grudges[t.owner] ?? 0) * 5)}% napada</span>}
         {t.isCapital && <span className="chip">Glavni grad{t.capitalOf && t.capitalOf !== t.owner ? ' (okupiran)' : ''}</span>}
         {t.resource && <span className="chip chip-good">Nalazište: {RES_L[t.resource]}</span>}
       </div>
@@ -78,10 +81,11 @@ export function TerritoryDetails({ t, onAction, onOperation }: { t: TerritoryVie
             </div>
           ) : null}
           <div className="grid grid-cols-2 border-b border-line pb-3">
-            <div className="flex items-center gap-3"><Icon name="shield" size={24} stroke={1.5} className="text-neutral-500" /><div><div className="text-xs text-muted">Obrana</div><div className="text-xl font-semibold leading-tight">{mine || t.defenseLevel !== undefined ? `+${defTotal}%` : '?'}</div></div></div>
+            <div className="flex items-center gap-3"><Icon name="shield" size={24} stroke={1.5} className="text-neutral-500" /><div><div className="text-xs text-muted"><Term id="obrana">Obrana</Term></div><div className="text-xl font-semibold leading-tight">{mine || t.defenseLevel !== undefined ? `+${defTotal}%` : '?'}</div></div></div>
             <div className="flex items-center gap-3 pl-4 border-l border-line"><Icon name="swords" size={24} stroke={1.5} className="text-neutral-500" /><div><div className="text-xs text-muted">Vojska</div><div className="text-xl font-semibold leading-tight">{mine ? armyTotal : t.armyEstimate?.range ? fmtRange(t.armyEstimate.range) : armyTotal ?? '?'}</div></div></div>
           </div>
-          {t.supplied === false && <div className="rounded-xl bg-red-50 p-3 text-sm text-bad font-medium">Odsječen od opskrbe: vojska slabi, proizvodnja −50%. Spoji ga s gradom preko svojih teritorija.</div>}
+          {t.camp && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm" data-testid="camp-card"><div className="font-semibold text-amber-900">{t.camp.name}</div><div className="text-amber-800">Jače čuvan neutralni kamp. Tko ga razbije, osvaja plijen: <b>{rewardText(t.camp.reward)}</b>.</div></div>}
+          {t.supplied === false && <div className="rounded-xl bg-red-50 p-3 text-sm text-bad font-medium"><Term id="opskrba">Odsječen od opskrbe</Term>: vojska slabi, proizvodnja −50%. Spoji ga s gradom preko svojih teritorija.</div>}
           {planning && t.terrain !== 'water' && (
             <div className="space-y-2" data-testid="territory-actions">
               {mine ? (<>

@@ -43,7 +43,7 @@ try {
     await p.waitForSelector('[data-testid=order-preview]'); await p.waitForTimeout(400); await shot('12-planner-review');
     await p.click('[data-testid=planner-submit]'); await waitTitle('Tajni cilj');
   });
-  await step('lock', async () => { await next(); await waitTitle('Pregledaj i zaključaj'); await p.click('[data-testid=tutorial-goto]'); await p.waitForSelector('[data-testid=orders-screen]'); await p.waitForTimeout(500); await shot('13-orders'); await p.click('[data-testid=lock-orders]'); await waitTitle('Razrješenje runde'); });
+  await step('lock', async () => { await next(); await waitTitle('Pregledaj i zaključaj'); await p.click('[data-testid=tutorial-goto]'); await p.waitForSelector('[data-testid=orders-screen]'); await p.waitForTimeout(500); await shot('13-orders'); await p.click('[data-testid=lock-orders]'); await p.locator('[data-testid=ready-confirm]').click({ timeout: 1500 }).catch(() => undefined); await waitTitle('Razrješenje runde'); });
   await step('resolve', async () => { await p.click('[data-testid=tutorial-resolve]'); await waitTitle('Dnevni izvještaj'); });
   await step('report', async () => { await p.click('[data-testid=tutorial-goto]'); await p.waitForSelector('[data-testid=report-screen]'); await p.waitForTimeout(600); await shot('14-report'); const txt = await p.locator('[data-testid=report-screen]').innerText(); if (!/Napad uspio/i.test(txt)) throw new Error('probna bitka nije uspjela: ' + txt.slice(0, 300)); await next(); await waitTitle('Spreman si'); await shot('15-end'); });
 } catch { /* već zabilježeno */ }

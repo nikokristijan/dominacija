@@ -43,6 +43,7 @@ export const orderAction = z.discriminatedUnion('action', [
   z.object({ action: z.literal('submit'), orderId: z.string().max(40) }),
   z.object({ action: z.literal('reorder'), orderIds: z.array(z.string().max(40)).max(50) }),
   z.object({ action: z.literal('ready'), ready: z.boolean() }),
+  z.object({ action: z.literal('dilemma'), choice: z.enum(['a', 'b']) }),
   z.object({ action: z.literal('tax'), tax: z.enum(['low', 'normal', 'high']) }),
 ]);
 

@@ -11,5 +11,6 @@ export * from './scoring';
 export { objectiveProgress, OBJECTIVES } from './objectives';
 export { estimateGarrison, visibilityOf, fmtRange } from './intel';
 export { EVENT_DEFS } from './events';
+export { chooseDilemma, dilemmaFor, describeEffects } from './dilemmas';
 export { hexCenter, hexCorners, mapPixelSize, tid, parseTid } from './hex';
 export { neighborIds, computeSupply, playerTerritories, unitTotal, describeUnits, isAllied, hasPact, activeAlliance } from './util';

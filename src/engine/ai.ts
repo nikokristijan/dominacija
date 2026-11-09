@@ -20,10 +20,10 @@ const personality = (s: GameState, pid: PlayerId): Personality => {
 export const botPersonality = personality;
 export const PERSONA_LABEL: Record<Personality, string> = { aggressor: 'ratoboran', builder: 'graditelj', diplomat: 'diplomat' };
 
-const LINES: Record<Personality, { hello: string; hit: string; won: string; lead: string }> = {
-  aggressor: { hello: 'Čuo sam da si novi kralj. Drži granice — ja ne praštam.', hit: 'Napao si moje! Ovo se pamti. Osveta stiže.', won: '{t} je sada moj. Bolje se brani sljedeći put.', lead: 'Vodiš? Ne zadugo.' },
-  builder: { hello: 'Mirno kraljevstvo je bogato kraljevstvo. Ne diraj moje farme.', hit: 'Prijatelju, ovo nije bilo potrebno. Razmisli o miru.', won: 'Nisam htio rat, ali {t} sada pripada meni.', lead: 'Dobro ti ide. Možda trgovina?' },
-  diplomat: { hello: 'Pozdrav, kralju! Savez bi nam obojici koristio. Što kažeš?', hit: 'Razočaran sam. Ali još se možemo dogovoriti.', won: 'Ne uzmi osobno — {t} mi je bio nužan.', lead: 'Svi te gledaju. Pametno je imati prijatelje.' },
+const LINES: Record<Personality, { hello: string; hit: string; won: string; lead: string; grudge: string }> = {
+  aggressor: { hello: 'Čuo sam da si novi kralj. Drži granice — ja ne praštam.', hit: 'Napao si moje! Ovo se pamti. Osveta stiže.', won: '{t} je sada moj. Bolje se brani sljedeći put.', lead: 'Vodiš? Ne zadugo.', grudge: 'Brojim tvoje dugove. Naplata je blizu.' },
+  builder: { hello: 'Mirno kraljevstvo je bogato kraljevstvo. Ne diraj moje farme.', hit: 'Prijatelju, ovo nije bilo potrebno. Razmisli o miru.', won: 'Nisam htio rat, ali {t} sada pripada meni.', lead: 'Dobro ti ide. Možda trgovina?', grudge: 'Imaš dug prema meni. Mir ili porez?' },
+  diplomat: { hello: 'Pozdrav, kralju! Savez bi nam obojici koristio. Što kažeš?', hit: 'Razočaran sam. Ali još se možemo dogovoriti.', won: 'Ne uzmi osobno — {t} mi je bio nužan.', lead: 'Svi te gledaju. Pametno je imati prijatelje.', grudge: 'Zamjeram ti, ali razgovorom se sve rješava.' },
 };
 const humans = (s: GameState) => s.playerOrder.filter((id) => !s.players[id].isBot);
 
@@ -41,6 +41,7 @@ export function botReact(s: GameState, pid: PlayerId, now: string) {
     if (b.defenderId === pid && att && !s.players[att].isBot) sendMessage(s, pid, att, L.hit, now);
     else if (att === pid && b.outcome === 'attacker_victory' && b.defenderId && !s.players[b.defenderId].isBot) sendMessage(s, pid, b.defenderId, L.won.replace('{t}', b.territoryName), now);
   }
+  for (const h of humans(s)) if ((s.players[pid].grudges?.[h] ?? 0) >= 2 && hash01(`${s.seed}:gr:${s.round}:${pid}:${h}`) < 0.5) sendMessage(s, pid, h, L.grudge, now);
   const top = [...s.playerOrder].sort((a, b) => s.scores[b].total - s.scores[a].total)[0];
   if (top && !s.players[top].isBot && hash01(`${s.seed}:lead:${s.round}:${pid}`) < 0.22) sendMessage(s, pid, top, L.lead, now);
 }
@@ -98,7 +99,7 @@ export function botPlan(s: GameState, pid: PlayerId, now: string) {
     for (const n of neighborIds(s, from.id)) {
       const target = s.map.territories[n];
       if (target.owner === pid || (target.owner && isAllied(s, pid, target.owner))) continue;
-      const score = target.importance + (target.isCapital ? 6 : 0) + (target.building === 'city' ? 2 : 0) + (target.owner ? 1 : 0) + (pers === 'aggressor' ? 1 : 0) - (target.owner ? 0 : 0) + hash01(`${s.seed}:${R}:${pid}:${target.id}`);
+      const score = target.importance + (target.isCapital ? 6 : 0) + (target.building === 'city' ? 2 : 0) + (target.owner ? 1 : 0) + (target.camp ? 3 : 0) + (target.owner ? Math.min(3, p.grudges?.[target.owner] ?? 0) : 0) + (pers === 'aggressor' ? 1 : 0) - (target.owner ? 0 : 0) + hash01(`${s.seed}:${R}:${pid}:${target.id}`);
       candidates.push({ from, target, units: send, score });
     }
   }

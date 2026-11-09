@@ -5,6 +5,7 @@ import type { TaxLevel } from '@/engine/types';
 import { Building } from '@/components/art/Buildings';
 import { ResourceIcon } from '@/components/art/Resources';
 import { Progress, SectionTitle, Expandable } from '@/components/ui/kit';
+import { Term } from '@/components/ui/Term';
 import { useGame } from '@/components/game/GameProvider';
 import { KingdomTabs } from '@/components/game/KingdomTabs';
 import { signed } from '@/lib/format';
@@ -36,7 +37,7 @@ export function KingdomScreen() {
         </section>
 
         <section className="card space-y-2">
-          <SectionTitle icon="heart">Stabilnost i narod</SectionTitle>
+          <SectionTitle icon="heart"><Term id="stabilnost">Stabilnost</Term> i narod</SectionTitle>
           <div className="flex items-center gap-3"><ResourceIcon name="stability" size={44} /><div className="flex-1"><div className="flex justify-between font-semibold text-sm"><span>Stabilnost {Math.round(v.me.stability)}/100</span><span className={fc.stabilityDelta < 0 ? 'text-bad' : 'text-good'}>{signed(fc.stabilityDelta)}/dan → {Math.round(fc.projectedStability)}</span></div><Progress value={v.me.stability} color={v.me.stability < v.config.stability.warnRed ? 'bg-bad' : v.me.stability < v.config.stability.warnYellow ? 'bg-warn' : 'bg-good'} /></div></div>
           {warn !== 'none' && <div className={`rounded-xl border p-3 text-sm font-medium ${warn === 'red' ? 'border-red-200 bg-red-50 text-red-900' : 'border-orange-200 bg-orange-50 text-orange-900'}`}>{warn === 'red' ? `OPASNOST: stabilost ispod ${v.config.stability.warnRed}. Ako nakon ove runde padne ispod ${v.config.stability.rebellionBelow}, najslabiji teritorij se buni i otcjepljuje. Snizi poreze, osiguraj hranu.` : 'Upozorenje: stabilnost je niska i pada.'}</div>}
           <div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl bg-primary-100/50 py-2"><div className="label !text-[10px]">Stanovništvo</div><div className="font-display text-lg">{pop}</div></div><div className="rounded-xl bg-primary-100/50 py-2"><div className="label !text-[10px]">Vojska</div><div className="font-display text-lg">{fc.soldiers}</div></div><div className="rounded-xl bg-primary-100/50 py-2"><div className="label !text-[10px]">Teritorija</div><div className="font-display text-lg">{mine.length}</div></div></div>
