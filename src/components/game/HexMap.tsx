@@ -40,8 +40,7 @@ const TopLayer = memo(function TopLayer({ c, selected, overlay, regionColor }: {
   const col = rel ? REL[rel] : REL.neutral;
   return (
     <g pointerEvents="none">
-      <path className="hex-top" d={pathFor(cx, cy + (water ? 4 : 0), SIZE - 0.4, lift)} fill={`url(#tg-${t.terrain})`} />
-      {!water && <path d={pathFor(cx, cy, SIZE - 0.4, lift)} fill="none" stroke="#fff" strokeOpacity="0.28" strokeWidth="1" />}
+      <path className="hex-top" d={pathFor(cx, cy + (water ? 4 : 0), SIZE - 0.4, lift)} fill={`url(#tg-${t.terrain})`} stroke="#fff" strokeOpacity="0.28" strokeWidth="1" />
       {!water && (rel ? <path d={pathFor(cx, cy, SIZE - 0.4, lift)} fill={col} opacity={rel === 'me' ? 0.34 : 0.3} /> : <path d={pathFor(cx, cy, SIZE - 0.4, lift)} fill={REL.neutral} opacity="0.1" />)}
       {overlay === 'regions' && regionColor && !water && <path d={pathFor(cx, cy, SIZE - 0.4, lift)} fill={regionColor} opacity="0.4" />}
     </g>
@@ -105,11 +104,16 @@ export interface HexMapProps {
   focusId?: string | null; overlay?: 'owners' | 'regions' | 'production'; className?: string; interactive?: boolean; fitSignal?: number; zoomSignal?: number; focusBias?: number;
 }
 
-export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], focusId, overlay = 'owners', className = '', interactive = true, fitSignal = 0, zoomSignal = 0, focusBias = 0.5 }: HexMapProps) {
+export const HexMap = memo(function HexMap({ view, selectedId, onSelect, highlights, arrows = [], focusId, overlay = 'owners', className = '', interactive = true, fitSignal = 0, zoomSignal = 0, focusBias = 0.5 }: HexMapProps) {
   const wrap = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 360, h: 420 });
   const [measured, setMeasured] = useState(false);
-  const [tf, setTf] = useState({ x: 0, y: 0, k: 1 });
+  const [tfState, setTfState] = useState({ x: 0, y: 0, k: 1 });
+  const tfRef = useRef({ x: 0, y: 0, k: 1 });
+  const layerRef = useRef<HTMLDivElement>(null);
+  const labelEls = useRef(new Map<string, SVGGElement>());
+  const raf = useRef(0);
+  const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const fitRef = useRef(1);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef({ moved: 0, startDist: 0, startK: 1, captured: false });
@@ -130,6 +134,23 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
     return { cells, W: maxX - minX + pad * 2, H: maxY - minY + pad * 2 };
   }, [view.map.order, view.territories]);
   const { W, H } = geo;
+
+  // Pan/zoom ide izravno u DOM (GPU transform + rAF), ne kroz React: nema ponovnog crtanja tisuća SVG elemenata po kadru.
+  const paint = useCallback(() => {
+    raf.current = 0;
+    const t = tfRef.current;
+    if (layerRef.current) layerRef.current.style.transform = `translate3d(${t.x}px,${t.y}px,0) scale(${t.k})`;
+    labelEls.current.forEach((el, key) => { const [x, y] = (el.dataset.p ?? '0,0').split(',').map(Number); el.setAttribute('transform', `translate(${(x * t.k + t.x).toFixed(1)} ${(y * t.k + t.y).toFixed(1)})`); void key; });
+  }, []);
+  const setTf = useCallback((n: { x: number; y: number; k: number } | ((t: { x: number; y: number; k: number }) => { x: number; y: number; k: number })) => {
+    const next = typeof n === 'function' ? n(tfRef.current) : n;
+    tfRef.current = next;
+    if (layerRef.current) layerRef.current.style.willChange = 'transform';
+    if (!raf.current) raf.current = requestAnimationFrame(paint);
+    if (settle.current) clearTimeout(settle.current);
+    settle.current = setTimeout(() => { if (layerRef.current) layerRef.current.style.willChange = 'auto'; setTfState(next); }, 170);
+  }, [paint]);
+  useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); if (settle.current) clearTimeout(settle.current); }, []);
 
   const fit = useCallback((w: number, h: number) => {
     const k = Math.min(w / W, h / H) * 0.98;
@@ -180,7 +201,7 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
   useEffect(() => {
     if (!focusId) return;
     const c = geo.cells[focusId]; if (!c) return;
-    const k = Math.max(tf.k, fitRef.current * 2.2);
+    const k = Math.max(tfRef.current.k, fitRef.current * 2.2);
     setTf(clampTf({ k, x: box.w / 2 - c.x * k, y: box.h * focusBias - c.y * k }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId]);
@@ -189,7 +210,7 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
     if (!interactive) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     gesture.current.moved = 0; gesture.current.captured = false;
-    if (pointers.current.size === 2) { const [a, b] = [...pointers.current.values()]; gesture.current.startDist = Math.hypot(a.x - b.x, a.y - b.y); gesture.current.startK = tf.k; }
+    if (pointers.current.size === 2) { const [a, b] = [...pointers.current.values()]; gesture.current.startDist = Math.hypot(a.x - b.x, a.y - b.y); gesture.current.startK = tfRef.current.k; }
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (!interactive || !pointers.current.has(e.pointerId)) return;
@@ -203,7 +224,7 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
       const [a, b] = [...pointers.current.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
       const rect = wrap.current!.getBoundingClientRect();
-      if (gesture.current.startDist > 0) zoomAt((a.x + b.x) / 2 - rect.left, (a.y + b.y) / 2 - rect.top, (d / gesture.current.startDist) * gesture.current.startK / tf.k);
+      if (gesture.current.startDist > 0) zoomAt((a.x + b.x) / 2 - rect.left, (a.y + b.y) / 2 - rect.top, (d / gesture.current.startDist) * gesture.current.startK / tfRef.current.k);
     }
   };
   const onPointerUp = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId); };
@@ -265,7 +286,7 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
     return d;
   };
 
-  const showAllNames = tf.k / fitRef.current >= 2.4;
+  const ratio = tfState.k / fitRef.current;
 
   const roads = useMemo(() => {
     const lines: Array<{ a: string; b: string; mine: boolean }> = [];
@@ -281,16 +302,67 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
     return lines;
   }, [order, sup, meId, players]);
 
+  // Imena: regije (pregled) + glavni gradovi; s približavanjem i gradovi/zgrade, a na kraju sva imena. Fiksna veličina na ekranu.
+  const labels = useMemo(() => {
+    const out: Array<{ id: string; x: number; y: number; text: string; kind: 'region' | 'capital' | 'place' | 'minor'; color: string; sub?: string }> = [];
+    for (const r of view.map.regions) {
+      const ids = r.territoryIds.filter((id) => geo.cells[id] && sup[id].terrain !== 'water');
+      if (!ids.length) continue;
+      const x = ids.reduce((n, id) => n + geo.cells[id].x, 0) / ids.length, y = ids.reduce((n, id) => n + geo.cells[id].y, 0) / ids.length;
+      out.push({ id: `r-${r.id}`, x, y, text: r.name, kind: 'region', color: '#171717' });
+    }
+    for (const c of cells) {
+      const t = c.t; if (t.terrain === 'water') continue;
+      const col = c.rel ? REL[c.rel] : '#6B6B6B';
+      const kind = t.isCapital ? 'capital' : (t.building || t.owner === meId || t.importance >= 4) ? 'place' : 'minor';
+      out.push({ id: t.id, x: c.cx, y: c.cy + SIZE * 0.62, text: t.name, kind, color: col });
+    }
+    return out;
+  }, [view.map.regions, cells, geo, sup, meId]);
+  // Raspored oznaka: prioritet (odabrano > glavni grad > mjesto > ostalo), a one koje se sudaraju ili su izvan ekrana ne crtamo.
+  const visibleLabels = useMemo(() => {
+    const k = tfState.k, W0 = box.w, H0 = box.h;
+    const rank = (l: (typeof labels)[number]) => (l.id === selectedId ? 0 : l.kind === 'capital' ? 1 : l.kind === 'region' ? 2 : l.kind === 'place' ? 3 : 4);
+    const placed: Array<[number, number, number, number]> = [];
+    const out: typeof labels = [];
+    for (const l of [...labels].sort((a, b) => rank(a) - rank(b))) {
+      if (l.kind === 'region' && ratio >= 1.6) continue;
+      if (l.kind === 'place' && ratio < 1.15 && l.id !== selectedId) continue;
+      if (l.kind === 'minor' && ratio < 1.9 && l.id !== selectedId) continue;
+      const sx = l.x * k + tfState.x, sy = l.y * k + tfState.y;
+      const fs = l.kind === 'region' ? 13 : 11.5;
+      const w = l.text.length * fs * (l.kind === 'region' ? 0.95 : 0.6) + 6;
+      const r: [number, number, number, number] = [sx - w / 2, sy - fs, sx + w / 2, sy + 5];
+      if (r[2] < -20 || r[0] > W0 + 20 || r[3] < -10 || r[1] > H0 + 10) continue;
+      if (placed.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) continue;
+      placed.push(r); out.push(l);
+    }
+    return out;
+  }, [labels, tfState, box.w, box.h, ratio, selectedId]);
+  // nakon svake promjene popisa oznaka postavi ih na trenutni transform
+  useEffect(() => { paint(); }, [visibleLabels, paint, box.w, box.h]);
+
+  const landD = useMemo(() => cells.map(({ cx, cy }) => pathFor(cx, cy, SIZE)).join(' '), [cells]);
+  const shadowD = useMemo(() => cells.filter((c) => c.t.terrain !== 'water').map(({ cx, cy }) => pathFor(cx, cy + DEPTH + 16, SIZE - 2)).join(' '), [cells]);
+  const sideD = useMemo(() => cells.filter((c) => c.t.terrain !== 'water').map(({ cx, cy }) => pathFor(cx, cy + DEPTH + 30, SIZE - 8)).join(' '), [cells]);
+
   return (
-    <div ref={wrap} className={`overflow-hidden touch-none select-none ${className}`} onWheel={onWheel} data-testid="hexmap">
-      <svg width={box.w} height={box.h} className="block" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onClick={onClick} role="application" aria-label="Svjetska karta">
+    <div ref={wrap} className={`overflow-hidden touch-none select-none ${className}`} onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onClick={onClick} data-testid="hexmap">
+      <div ref={layerRef} className="absolute left-0 top-0" style={{ width: W, height: H, transformOrigin: '0 0' }}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block" style={{ overflow: 'visible' }} role="application" aria-label="Svjetska karta">
         <TerrainDefs />
         <defs>
           {(['attack', 'support', 'plan'] as const).map((k) => <marker key={k} id={`arr-${k}`} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill={k === 'attack' ? '#D1453B' : k === 'support' ? '#2F9E62' : '#7138E8'} /></marker>)}
         </defs>
-        <g transform={`translate(${tf.x} ${tf.y}) scale(${tf.k})`}>
-          {/* 1. sjena + bočne strane: otok lebdi direktno na bijeloj pozadini */}
-          <g filter="url(#map-shadow)">
+        <g>
+          {/* 0. plitko more oko otoka (organski obris) + jeftina sjena bez SVG filtera */}
+          <g pointerEvents="none" strokeLinejoin="round">
+            <path d={landD} fill="#E3F2FA" stroke="#E3F2FA" strokeWidth="96" opacity="0.55" />
+            <path d={landD} fill="#D2EAF6" stroke="#D2EAF6" strokeWidth="52" opacity="0.9" />
+            <path d={sideD} fill="#171717" opacity="0.05" stroke="#171717" strokeOpacity="0.05" strokeWidth="14" />
+            <path d={shadowD} fill="#171717" opacity="0.08" stroke="#171717" strokeOpacity="0.08" strokeWidth="6" />
+          </g>
+          <g>
             {cells.map(({ t, cx, cy }) => t.terrain === 'water'
               ? <path key={t.id} d={pathFor(cx, cy + 4, SIZE - 0.4)} fill="#5A9FCB" />
               : <path key={t.id} d={pathFor(cx, cy + DEPTH, SIZE - 0.2)} fill="url(#tg-side)" />)}
@@ -311,7 +383,7 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
               else if (t.armyEstimate?.exact) armyLabel = `${unitTotal(t.armyEstimate.exact)}`;
               else if (t.owner && t.visibility === 'far') armyLabel = '?';
             }
-            return <MarkLayer key={t.id} c={c} selected={selectedId === t.id} showName={showAllNames || (t.isCapital && tf.k / fitRef.current > 1.2) || selectedId === t.id} armyLabel={armyLabel} fog={t.visibility === 'far'}
+            return <MarkLayer key={t.id} c={c} selected={selectedId === t.id} showName={false} armyLabel={armyLabel} fog={t.visibility === 'far'}
               mine={t.owner === meId} unsupplied={t.owner === meId && t.supplied === false} production={overlay === 'production'} hl={highlights?.[t.id]} />;
           })}
           <g pointerEvents="none">
@@ -326,8 +398,20 @@ export function HexMap({ view, selectedId, onSelect, highlights, arrows = [], fo
           {cells.map(({ t, cx, cy }) => <path key={t.id} data-tid={t.id} data-testid={`hex-${t.id}`} className={t.terrain === 'water' ? undefined : 'map-hex'} d={pathFor(cx, cy, SIZE)} fill="transparent" />)}
         </g>
       </svg>
+      </div>
+      {/* oznake: fiksna veličina na ekranu, pozicija se ažurira izravno u DOM-u */}
+      <svg className="absolute left-0 top-0 pointer-events-none" width={box.w} height={box.h} aria-hidden="true">
+        {visibleLabels.map((l) => (
+          <g key={l.id} data-p={`${l.x},${l.y}`} ref={(el) => {
+            if (el) { labelEls.current.set(l.id, el); const t = tfRef.current; el.setAttribute('transform', `translate(${(l.x * t.k + t.x).toFixed(1)} ${(l.y * t.k + t.y).toFixed(1)})`); } else labelEls.current.delete(l.id);
+          }}>
+            {l.kind === 'region'
+              ? <text textAnchor="middle" fontSize="13" fontWeight="700" letterSpacing="3.5" fill="#171717" fillOpacity="0.42" stroke="#fff" strokeOpacity="0.75" strokeWidth="3.5" paintOrder="stroke" strokeLinejoin="round">{l.text.toUpperCase()}</text>
+              : <text textAnchor="middle" fontSize={l.kind === 'capital' ? 12.5 : l.kind === 'place' ? 11.5 : 11} fontWeight={l.kind === 'capital' ? 750 : 650} fill={l.kind === 'capital' ? l.color : '#262626'} stroke="#fff" strokeWidth="3.6" paintOrder="stroke" strokeLinejoin="round">{l.text}</text>}
+          </g>))}
+      </svg>
     </div>
   );
-}
+});
 
 export const MAP_REL_LABELS: Array<{ key: keyof typeof REL; label: string }> = [{ key: 'me', label: 'Ti' }, { key: 'ally', label: 'Saveznik' }, { key: 'enemy', label: 'Protivnik' }, { key: 'neutral', label: 'Neutralno' }];

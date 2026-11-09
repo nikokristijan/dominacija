@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type { OrderType } from '@/engine/types';
@@ -59,6 +59,9 @@ export function MapScreen() {
     }
     g.select(id);
   };
+  // stabilna referenca: karta se ne crta ponovno svake sekunde zbog otkucaja sata
+  const selRef = useRef(onSelect); selRef.current = onSelect;
+  const stableSelect = useCallback((id: string | null) => selRef.current(id), []);
   const startOp = (target: string | null) => { g.select(null); setOp({ target, from: null }); };
   const popupOpen = !!op || (!!sel && !composer);
   const cycle = () => setOverlay((o) => (o === 'owners' ? 'regions' : o === 'regions' ? 'production' : 'owners'));
@@ -74,11 +77,11 @@ export function MapScreen() {
 
   return (
     <div className="flex-1 min-h-0 relative bg-white" data-testid="map-area">
-      <HexMap view={v} selectedId={g.selected} onSelect={onSelect} arrows={arrows} highlights={highlights} overlay={overlay} className="absolute inset-0" fitSignal={fitSignal} zoomSignal={zoomSignal} focusId={!desktop ? (op?.target ?? g.selected) : null} focusBias={0.24} />
+      <HexMap view={v} selectedId={g.selected} onSelect={stableSelect} arrows={arrows} highlights={highlights} overlay={overlay} className="absolute inset-0" fitSignal={fitSignal} zoomSignal={zoomSignal} focusId={!desktop ? (op?.target ?? g.selected) : null} focusBias={0.24} />
 
       {/* sloj + legenda (plutajuće, bez okvira) */}
       <div className="absolute top-3 left-3 right-3 lg:right-auto flex items-center gap-2 pointer-events-none">
-        <div className="pointer-events-auto w-full max-w-[17rem] bg-white/90 backdrop-blur rounded-xl"><Seg small value={overlay} onChange={setOverlay} options={[{ value: 'owners', label: 'Vlasnici' }, { value: 'regions', label: 'Regije' }, { value: 'production', label: 'Proizvodnja' }]} /></div>
+        <div className="pointer-events-auto w-full max-w-[17rem] bg-white rounded-xl"><Seg small value={overlay} onChange={setOverlay} options={[{ value: 'owners', label: 'Vlasnici' }, { value: 'regions', label: 'Regije' }, { value: 'production', label: 'Proizvodnja' }]} /></div>
       </div>
       <div className="absolute left-3 bottom-4 hidden lg:flex flex-col gap-1.5 pointer-events-none" data-tour="legend">
         {MAP_REL_LABELS.map((r) => <div key={r.key} className="flex items-center gap-2 text-xs font-semibold text-neutral-600"><span className="h-2.5 w-2.5 rounded-full" style={{ background: REL[r.key] }} />{r.label}</div>)}

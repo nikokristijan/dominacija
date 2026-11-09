@@ -99,7 +99,7 @@ function BottomNav({ id }: { id: string }) {
   const order = ['home', 'map', 'orders', 'dip', 'more'];
   items.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
   return (
-    <nav className="lg:hidden shrink-0 bg-white/95 backdrop-blur border-t border-line pb-[var(--safe-b)] z-30" aria-label="Glavna navigacija">
+    <nav className="lg:hidden shrink-0 bg-white border-t border-line pb-[var(--safe-b)] z-30" aria-label="Glavna navigacija">
       <ul className="grid grid-cols-5">
         {items.map((n) => {
           const active = isActive(path, base, n.href);

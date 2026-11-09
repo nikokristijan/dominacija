@@ -28,6 +28,7 @@ export function GameProvider({ id, children }: { id: string; children: React.Rea
   const [now, setNow] = useState(() => Date.now());
   const skew = useRef(0);
   const busy = useRef(false);
+  const last = useRef<{ v: string | null; m: string | null }>({ v: null, m: null });
 
   const refresh = useCallback(async () => {
     if (busy.current) return;
@@ -35,7 +36,11 @@ export function GameProvider({ id, children }: { id: string; children: React.Rea
     try {
       const r = await api<{ meta: CampaignMeta; view: PlayerView | null; unread: number }>(`/api/campaigns/${id}`);
       skew.current = new Date(r.meta.serverNow).getTime() - Date.now();
-      setMeta(r.meta); setView(r.view); setUnread(r.unread); setError(null);
+      // nepromijenjeno stanje ne smije ponovno crtati kartu: postavljaj samo kad se sadržaj stvarno razlikuje
+      const vj = JSON.stringify(r.view), mj = JSON.stringify({ ...r.meta, serverNow: 0 });
+      if (vj !== last.current.v) { last.current.v = vj; setView(r.view); }
+      if (mj !== last.current.m) { last.current.m = mj; setMeta(r.meta); }
+      setUnread(r.unread); setError(null);
     } catch (e) {
       if (e instanceof ApiFail && e.status === 401) { window.location.href = '/prijava'; return; }
       setError(e instanceof Error ? e.message : 'Greška');
