@@ -13,6 +13,8 @@ import { PreviewCard, UnitPicker, freeUnits } from './common';
 import { adjacentOwned } from './TerritoryDetails';
 
 const STEPS = ['Cilj', 'Vojska', 'Pregled'];
+/** Posebna „rezerva” nije potrebna: vojnici koje ne pošalješ ionako ostaju u obrani. Stabilna referenca (ulazi u useMemo). */
+const NO_RESERVE: Units = {};
 const STRAT: Array<{ id: AttackStrategy; name: string; desc: string; tag: string }> = [
   { id: 'direct', name: 'Izravni napad', desc: 'Snažan trenutačni udar. Veći gubici s obje strane.', tag: '+15% napad · +20% gubitaka' },
   { id: 'ambush', name: 'Zasjeda', desc: 'Slabija izravna snaga, ali jaka uz svježu špijunažu cilja.', tag: 'treba obavještajne podatke' },
@@ -47,7 +49,7 @@ export function OperationPopup({ target, from, setTarget, setFrom, onClose }: { 
   const [step, setStep] = useState(0);
   const [strategy, setStrategy] = useState<AttackStrategy>('direct');
   const [units, setUnits] = useState<Units>({});
-  const reserve: Units = {}; // posebna „rezerva” nije potrebna: vojnici koje ne pošalješ ionako ostaju u obrani
+  const reserve = NO_RESERVE;
   const [formation, setFormation] = useState<Formation>('line');
   const [risk, setRisk] = useState<RiskPref>('balanced');
   const [supply, setSupply] = useState<SupplyLevel>('standard');
