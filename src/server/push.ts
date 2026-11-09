@@ -1,16 +1,25 @@
 /**
- * Web Push (priprema). Šalje se samo ako su postavljeni VAPID ključevi i instaliran paket `web-push`.
- * Bez toga se obavijesti prikazuju unutar aplikacije. NIJE testirano s pravim push poslužiteljem.
+ * Web Push: šalje se samo ako su postavljeni VAPID ključevi (NEXT_PUBLIC_VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY).
+ * Bez njih obavijesti rade unutar aplikacije. Slanje je odvojeno od transakcije (outbox): poruke se šalju tek nakon
+ * što je zapis stvarno spremljen, a istekle pretplate (HTTP 404/410) se vraćaju pozivatelju da ih ukloni.
  */
+import * as wpNs from 'web-push';
 import type { PushSub } from './records';
 
-export async function sendPushTo(subs: PushSub[], payload: { title: string; body: string; url: string }): Promise<void> {
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, priv = process.env.VAPID_PRIVATE_KEY;
-  if (!pub || !priv || !subs.length) return;
-  try {
-    const modName = 'web-push';
-    const webpush = (await import(/* webpackIgnore: true */ modName)).default;
-    webpush.setVapidDetails('mailto:admin@dominacija.example', pub, priv);
-    await Promise.allSettled(subs.map((s) => webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload))));
-  } catch { /* paket nije instaliran — preskoči */ }
+// CJS paket: ovisno o bundleru funkcije su na `default` ili izravno na modulu
+const webpush = ((wpNs as unknown as { default?: typeof wpNs }).default ?? wpNs) as typeof wpNs;
+
+export interface PushPayload { title: string; body: string; url: string }
+export const pushEnabled = () => !!(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+
+/** Vraća endpointe pretplata koje više ne vrijede. */
+export async function sendPushTo(subs: PushSub[], payload: PushPayload, send: typeof webpush.sendNotification = webpush.sendNotification.bind(webpush)): Promise<string[]> {
+  if (!pushEnabled() || !subs.length) return [];
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? 'mailto:admin@dominacija.example', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+  const dead: string[] = [];
+  await Promise.allSettled(subs.map(async (s) => {
+    try { await send({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload), { TTL: 6 * 3600, urgency: 'high', timeout: 5000 }); }
+    catch (e) { const code = (e as { statusCode?: number }).statusCode; if (code === 404 || code === 410) dead.push(s.endpoint); }
+  }));
+  return dead;
 }

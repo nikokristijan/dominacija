@@ -30,9 +30,16 @@ Trebaju ti dva računa (oba besplatna): [supabase.com](https://supabase.com) i [
 3. Prijatelj: **Pridruži se** → upiše kod.
 4. Ti: **Pokreni**. Botovi popune ostala mjesta. U brzoj partiji dan traje do 10 min ili dok oboje ne označite **Spremno** — 7 dana je oko sat vremena.
 
+## 4. (Po želji) Push obavijesti na mobitelu
+Bez ovoga obavijesti rade samo unutar igre. Za obavijesti na mobitelu ("Ana te napala"):
+1. Na svom računalu, u mapi projekta: `npx web-push generate-vapid-keys` — ispiše **Public Key** i **Private Key**.
+2. U Vercelu dodaj varijable: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (Public Key), `VAPID_PRIVATE_KEY` (Private Key), po želji `VAPID_SUBJECT` (npr. `mailto:ti@email.com`). Zatim **Redeploy** (javni ključ ulazi u aplikaciju pri buildu).
+3. U igri će se na početnoj stranici pojaviti prijedlog "Javimo ti kad te netko napadne" — dodirni **Uključi** i dopusti obavijesti.
+4. **iPhone:** obavijesti rade tek kad igru dodaš na početni zaslon (Safari → Dijeli → *Dodaj na početni zaslon*) i otvoriš je odatle.
+Ovo je napisano i provjereno jediničnim testom, ali **nije isprobano s pravim push poslužiteljem** — ako ne stigne obavijest, javi mi.
+
 ## Napomene (iskreno)
 - **Razrješenje runde** događa se kad netko otvori igru nakon isteka roka ili kad oboje označite „Spremno”. Vercel cron (jednom dnevno) je samo zaštita; na besplatnom planu ne može češće.
 - **Pohrana** je jedan JSON dokument u bazi s optimističnim zaključavanjem — sasvim dovoljno za prijatelje i testiranje, ali nije rješenje za tisuće igrača.
-- Push obavijesti nisu uključene (treba VAPID ključeve); obavijesti rade unutar aplikacije.
 - Nakon svakog `git push` na `main` Vercel sam objavi novu verziju. Podaci iz baze ostaju.
 - Ako vidiš grešku „Pohrana nije podešena”, provjeri varijable iz koraka 2 pa u Vercelu **Deployments → ⋯ → Redeploy**.

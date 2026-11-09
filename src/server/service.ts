@@ -16,7 +16,7 @@ import type { FactionId, GameState, OrderInput } from '@/engine/types';
 import { nextClock } from './clock';
 import type { CampaignRecord, Db, Member, NotificationRecord, Schedule } from './records';
 import { getStore } from './store';
-import { sendPushTo } from './push';
+import { sendPushTo, pushEnabled, type PushPayload } from './push';
 
 export class ApiError extends Error { constructor(public status: number, message: string, public details?: unknown) { super(message); } }
 const nowIso = () => new Date().toISOString();
@@ -41,7 +41,22 @@ function pushNotification(db: Db, userId: string, campaignId: string | null, kin
   const n: NotificationRecord = { id: newId(db, 'n'), userId, campaignId, kind, title, body, createdAt: nowIso(), readAt: null };
   db.notifications.push(n);
   if (db.notifications.length > 5000) db.notifications.splice(0, db.notifications.length - 5000);
-  if (prefs?.push) void sendPushTo(db.pushSubs.filter((s) => s.userId === userId), { title, body, url: campaignId ? `/k/${campaignId}` : '/igra' });
+  if (prefs?.push) outbox.push({ id: n.id, userId, at: Date.now(), payload: { title, body, url: campaignId ? `/k/${campaignId}` : '/igra' } });
+}
+
+/** Push se šalje TEK nakon što je transakcija spremljena (u serverless okruženju fire-and-forget iz tx bi se izgubio, a ponovljeni tx bi poslao duplikate). */
+const outbox: Array<{ id: string; userId: string; at: number; payload: PushPayload }> = [];
+export async function flushPushOutbox(): Promise<number> {
+  if (!outbox.length || !pushEnabled()) { outbox.length = 0; return 0; }
+  const batch = outbox.splice(0, outbox.length);
+  const store = getStore();
+  const { committed, subs } = await store.read((db) => ({ committed: new Set(db.notifications.slice(-200).map((n) => n.id)), subs: db.pushSubs }));
+  const send: typeof batch = [];
+  for (const e of batch) { if (committed.has(e.id)) send.push(e); else if (Date.now() - e.at < 10_000) outbox.push(e); }
+  const dead = new Set<string>();
+  await Promise.all(send.map(async (e) => { for (const d of await sendPushTo(subs.filter((s) => s.userId === e.userId), e.payload)) dead.add(d); }));
+  if (dead.size) await store.tx((db) => { db.pushSubs = db.pushSubs.filter((s) => !dead.has(s.endpoint)); }).catch(() => undefined);
+  return send.length;
 }
 /** Ispražnjava obavijesti koje je engine stavio u red (nakon svake akcije/razrješenja). */
 function drainNotifications(db: Db, c: CampaignRecord) {

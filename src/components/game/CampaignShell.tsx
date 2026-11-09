@@ -144,10 +144,10 @@ function TopBar({ id }: { id: string }) {
           <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} label="Željezo" />
           <ResPill name="wood" value={v.me.resources.wood} delta={net.wood} label="Drvo" />
           <ResPill name="influence" value={v.me.resources.influence} delta={net.influence} label="Utjecaj" />
-          <div className="hidden xl:flex items-center gap-2 shrink-0" title="Bodovi"><Icon name="trophy" size={20} className="text-neutral-500" /><span className="text-lg font-semibold">{myScore}</span></div>
+          <div className="hidden 2xl:flex items-center gap-2 shrink-0" title="Bodovi"><Icon name="trophy" size={20} className="text-neutral-500" /><span className="text-lg font-semibold">{myScore}</span></div>
         </div>
         <div className="ml-auto flex items-center gap-1 shrink-0">
-          <div className={`hidden xl:flex items-center gap-1.5 rounded-full px-3 h-9 text-sm font-semibold mr-1 ${stab < v.config.stability.warnRed ? 'bg-red-50 text-bad' : stab < v.config.stability.warnYellow ? 'bg-orange-50 text-warn' : 'bg-neutral-50 text-neutral-600'}`} title="Stabilnost"><ResourceIcon name="stability" size={16} />{stab}</div>
+          <div className={`hidden 2xl:flex items-center gap-1.5 rounded-full px-3 h-9 text-sm font-semibold mr-1 ${stab < v.config.stability.warnRed ? 'bg-red-50 text-bad' : stab < v.config.stability.warnYellow ? 'bg-orange-50 text-warn' : 'bg-neutral-50 text-neutral-600'}`} title="Stabilnost"><ResourceIcon name="stability" size={16} />{stab}</div>
           <Link href={`/k/${id}/naredbe`} className="flex items-center gap-1.5 rounded-full bg-primary-100 text-primary px-3 h-9 text-sm font-semibold whitespace-nowrap" data-testid="cp-chip-top" data-tour="cp"><ResourceIcon name="command" size={16} />{v.cp.available - v.cp.used}<span className="hidden sm:inline">/ {v.cp.available}&nbsp;ZB</span></Link>
           <Link href={`/k/${id}/ljestvica`} className="hidden lg:grid place-items-center h-10 w-10 rounded-full text-neutral-500 hover:bg-neutral-50" aria-label="Poredak"><Icon name="list" size={20} /></Link>
           <Link href={`/k/${id}/diplomacija`} className="relative hidden lg:grid place-items-center h-10 w-10 rounded-full text-neutral-500 hover:bg-neutral-50" aria-label="Poruke"><Icon name="send" size={20} />{pendingOffers > 0 && <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />}</Link>

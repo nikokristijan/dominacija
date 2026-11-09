@@ -13,6 +13,7 @@ import { EventIcon } from '@/components/art/Effects';
 import { suggestions } from '@/lib/suggestions';
 import { useReady } from '@/components/game/ReadyGuard';
 import { Term } from '@/components/ui/Term';
+import { PushPrompt } from '@/components/game/PushPrompt';
 
 const SEV: Record<string, string> = { good: 'border-green-200 bg-green-50', bad: 'border-red-200 bg-red-50', warn: 'border-orange-200 bg-orange-50', info: 'border-line bg-white' };
 
@@ -92,6 +93,8 @@ export function Dashboard() {
 
         {/* Upozorenja */}
         {warnings.map((w, i) => { const body2 = <div className={`flex items-center gap-3 rounded-xl border p-3 text-sm font-medium ${w.sev === 'bad' ? 'border-red-200 bg-red-50 text-red-900' : 'border-orange-200 bg-orange-50 text-orange-900'}`}><Icon name="warn" size={20} className="shrink-0" /><span className="flex-1">{w.t}</span>{w.href && <Icon name="chevron" size={16} />}</div>; return w.href ? <Link key={i} href={w.href} className="block">{body2}</Link> : <div key={i}>{body2}</div>; })}
+
+        <PushPrompt />
 
         {/* Što dalje? */}
         {sugg.length > 0 && (

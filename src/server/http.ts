@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError, type ZodType } from 'zod';
 import { currentUser } from './auth';
-import { ApiError, logError } from './service';
+import { ApiError, logError, flushPushOutbox } from './service';
 import { getStore } from './store';
 import type { UserRecord } from './records';
 
@@ -11,7 +11,9 @@ export async function handle(where: string, fn: (user: UserRecord | null) => Pro
   try {
     const user = await currentUser();
     if (opts.auth !== false && !user) return json({ error: 'Nisi prijavljen.' }, 401);
-    return json(await fn(user));
+    const out = await fn(user);
+    await flushPushOutbox().catch(() => undefined);
+    return json(out);
   } catch (e) {
     if (e instanceof ApiError) return json({ error: e.message, details: e.details }, e.status);
     if (e instanceof ZodError) return json({ error: 'Neispravni podaci.', details: e.issues.slice(0, 5).map((i) => `${i.path.join('.')}: ${i.message}`) }, 400);

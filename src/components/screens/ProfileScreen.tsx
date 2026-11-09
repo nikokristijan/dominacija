@@ -8,6 +8,7 @@ import { Icon } from '@/components/art/Icons';
 import { Field, SectionTitle } from '@/components/ui/kit';
 import { useGame } from '@/components/game/GameProvider';
 import { api } from '@/lib/api';
+import { enablePush as doEnablePush, PUSH_MESSAGES } from '@/lib/pushClient';
 import type { ProfileRecord } from '@/server/records';
 
 const PREF_LABELS: Record<string, string> = { invitation: 'Pozivi u kampanje', alliance_offer: 'Ponude saveza', trade_offer: 'Trgovinske ponude', attack: 'Napadi na tvoje teritorije', resolution: 'Završetak dnevnog razrješenja', diplomatic: 'Diplomatski događaji', campaign_complete: 'Završetak kampanje', phase: 'Početak nove faze planiranja', achievement: 'Postignuća', warning: 'Upozorenja (glad, pobuna)' };
@@ -19,17 +20,7 @@ export function ProfileScreen() {
   const [name, setName] = useState('');
   useEffect(() => { api<{ profile: ProfileRecord }>('/api/profile').then((r) => { setProf(r.profile); setName(r.profile.displayName); }).catch(() => undefined); }, []);
   const save = async (body: Record<string, unknown>) => { try { const r = await api<{ profile: ProfileRecord }>('/api/profile', body); setProf(r.profile); g.toast('Spremljeno.', 'good'); } catch (e) { g.toast(e instanceof Error ? e.message : 'Greška', 'bad'); } };
-  const enablePush = async () => {
-    try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return g.toast('Preglednik ne podržava push obavijesti.', 'bad');
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!key) return g.toast('Push poslužitelj još nije podešen (VAPID ključevi). Obavijesti rade unutar aplikacije.', 'info');
-      const perm = await Notification.requestPermission(); if (perm !== 'granted') return g.toast('Dozvola odbijena.', 'bad');
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
-      await api('/api/push/subscribe', sub.toJSON()); g.toast('Push obavijesti uključene.', 'good');
-    } catch (e) { g.toast(e instanceof Error ? e.message : 'Greška', 'bad'); }
-  };
+  const enablePush = async () => { const r = await doEnablePush(); g.toast(PUSH_MESSAGES[r], r === 'ok' ? 'good' : r === 'no-keys' ? 'info' : 'bad'); };
   const s = v.me.stats;
   const stats: Array<[string, number]> = [['Bitke dobivene', s.battlesWon], ['Bitke izgubljene', s.battlesLost], ['Obrane', s.defensesWon], ['Osvojeno teritorija', s.territoriesCaptured], ['Izgubljeno teritorija', s.territoriesLost], ['Glavni gradovi osvojeni', s.capitalsCaptured], ['Istraženo', s.researchDone], ['Trgovina', s.tradesDone], ['Uhvaćeni špijuni', s.spiesCaught]];
   return (
