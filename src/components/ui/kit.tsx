@@ -1,6 +1,6 @@
 'use client';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '@/components/art/Icons';
 import { useIsDesktop } from '@/lib/useMediaQuery';
 
@@ -9,9 +9,13 @@ import { useIsDesktop } from '@/lib/useMediaQuery';
  * - mobilno: donji list koji se povlači (draggable); `modeless` ostavlja kartu iznad dodirljivom
  * - desktop: `side` = plutajući desni panel bez zatamnjenja; inače centrirani modal
  */
-export function Sheet({ open, onClose, children, title, tall = false, modeless = false, side = false }: { open: boolean; onClose: () => void; children: React.ReactNode; title?: string; tall?: boolean; modeless?: boolean; side?: boolean }) {
+export function Sheet({ open, onClose, children, title, tall = false, modeless = false, side = false, peek = false }: { open: boolean; onClose: () => void; children: React.ReactNode; title?: string; tall?: boolean; modeless?: boolean; side?: boolean; peek?: boolean }) {
   const reduce = useReducedMotion();
   const desktop = useIsDesktop();
+  // mobilni „peek”: list se otvara nisko (karta ostaje vidljiva), povlačenjem gore se proširi, dolje zatvori
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => { if (!open) setExpanded(false); }, [open]);
+  const peeking = peek && modeless && !desktop;
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -25,14 +29,17 @@ export function Sheet({ open, onClose, children, title, tall = false, modeless =
         <div className={`fixed inset-0 z-50 flex ${floating ? 'items-start justify-end pointer-events-none pt-[88px] pr-4 pb-4' : 'items-end lg:items-center justify-center'} ${modeless && !desktop ? 'pointer-events-none' : ''}`} role="dialog" aria-modal={!modeless && !floating} aria-label={title}>
           {!modeless && !floating && <motion.div className="absolute inset-0 bg-black/25" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />}
           <motion.div
-            className={`relative bg-white flex flex-col pointer-events-auto ${floating ? 'w-[400px] max-h-full rounded-[20px] float-shadow' : `w-full max-w-xl rounded-t-[24px] lg:rounded-[24px] float-shadow ${tall ? 'h-[92dvh] lg:h-auto lg:max-h-[88dvh]' : modeless ? 'max-h-[62dvh]' : 'max-h-[88dvh]'}`}`}
+            className={`relative bg-white flex flex-col pointer-events-auto ${floating ? 'w-[400px] max-h-full rounded-[20px] float-shadow' : `w-full max-w-xl rounded-t-[24px] lg:rounded-[24px] float-shadow ${tall ? 'h-[92dvh] lg:h-auto lg:max-h-[88dvh]' : peeking ? `transition-[height] duration-300 ease-out ${expanded ? 'h-[82dvh]' : 'h-[40dvh]'}` : modeless ? 'max-h-[62dvh]' : 'max-h-[88dvh]'}`}`}
             initial={reduce ? { opacity: 0, x: 0, y: 0 } : floating ? { x: 40, y: 0, opacity: 0 } : { x: 0, y: '100%', opacity: 1 }} animate={{ x: 0, y: 0, opacity: 1 }} exit={reduce ? { opacity: 0 } : floating ? { x: 40, opacity: 0 } : { y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 340 }}
-            drag={reduce || floating ? false : 'y'} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.5 }} onDragEnd={(_, i) => { if (i.offset.y > 110 || i.velocity.y > 600) onClose(); }}
+            drag={reduce || floating ? false : 'y'} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.5 }} onDragEnd={(_, i) => {
+              if (peeking) { if (i.offset.y < -50 || i.velocity.y < -500) setExpanded(true); else if (i.offset.y > 90 || i.velocity.y > 600) { if (expanded) setExpanded(false); else onClose(); } return; }
+              if (i.offset.y > 110 || i.velocity.y > 600) onClose();
+            }}
           >
             {floating ? (
               <div className="flex items-center justify-between px-5 pt-4 pb-1 shrink-0"><span className="label">{title}</span><button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-full text-neutral-400 hover:bg-neutral-50" aria-label="Zatvori"><Icon name="close" size={18} /></button></div>
-            ) : <div className="pt-2.5 pb-1 shrink-0 cursor-grab touch-none"><div className="sheet-handle" /></div>}
+            ) : <div className="pt-2.5 pb-1 shrink-0 cursor-grab touch-none" onClick={() => peeking && setExpanded((e) => !e)}><div className="sheet-handle" /></div>}
             <div className="overflow-y-auto overscroll-contain px-5 pb-[calc(1.25rem+var(--safe-b))] pt-2 flex-1 min-h-0">{children}</div>
           </motion.div>
         </div>

@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const base = process.argv[2], out = process.argv[3];
 const b = await chromium.launch();
 async function session(vp, mobile, prefix) {
-  const ctx = await b.newContext({ viewport: vp, deviceScaleFactor: 1.5, isMobile: mobile, hasTouch: mobile }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); } catch {} });
+  const ctx = await b.newContext({ viewport: vp, deviceScaleFactor: 1.5, isMobile: mobile, hasTouch: mobile }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); localStorage.setItem('dom_legend_seen', '1'); } catch {} });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
   await p.goto(base + '/'); await p.waitForTimeout(1200); await p.screenshot({ path: `${out}/${prefix}-welcome.png` });

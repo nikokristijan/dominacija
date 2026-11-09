@@ -6,7 +6,7 @@ const base = process.argv[2], out = process.argv[3];
 const b = await chromium.launch();
 const routes = ['', '/karta', '/naredbe', '/diplomacija', '/tehnologija', '/kraljevstvo', '/izvjestaji', '/ljestvica', '/profil', '/vise', '/obavijesti'];
 async function run(vp, mobile, prefix) {
-  const ctx = await b.newContext({ viewport: vp, deviceScaleFactor: 1.25, isMobile: mobile, hasTouch: mobile }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); } catch {} });
+  const ctx = await b.newContext({ viewport: vp, deviceScaleFactor: 1.25, isMobile: mobile, hasTouch: mobile }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); localStorage.setItem('dom_legend_seen', '1'); } catch {} });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.goto(base + '/prijava?mode=register'); await p.fill('[data-testid=username]', 'a' + prefix + (Date.now() % 100000)); await p.fill('[data-testid=password]', 'lozinka123'); await p.click('[data-testid=auth-submit]'); await p.waitForURL('**/igra');

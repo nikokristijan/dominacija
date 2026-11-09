@@ -13,13 +13,13 @@ import { RES_NAMES, num } from '@/lib/format';
 
 export function ResPill({ name, value, delta, label, compact, runway }: { name: ResourceIconName; value: number | string; delta?: number; label?: string; compact?: boolean; runway?: number | null }) {
   return (
-    <div className="flex items-center gap-2 shrink-0" title={label ?? String(name)}>
+    <div className={`flex items-center ${compact ? "gap-1.5" : "gap-2"} shrink-0`} title={label ?? String(name)}>
       <ResourceIcon name={name} size={compact ? 17 : 22} className="text-neutral-500" />
       <div className="leading-tight">
-        <div className={`font-semibold tabular-nums ${compact ? 'text-sm' : 'text-[17px]'}`}>{typeof value === 'number' ? num(value) : value}</div>
+        <div className={`font-semibold tabular-nums ${compact ? 'text-[13px]' : 'text-[17px]'}`}>{typeof value === 'number' ? num(value) : value}</div>
         {delta !== undefined && !compact && <div className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta * 10) / 10)}/d{runway != null && runway < 5 && <span className="ml-1 text-bad" title="Zalihe se troše: koliko dana do nule">· {Math.max(0, Math.floor(runway))}d</span>}</div>}
       </div>
-      {delta !== undefined && compact && <span className={`text-[11px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta))}{runway != null && runway < 5 && <b className="ml-0.5">{Math.max(0, Math.floor(runway))}d</b>}</span>}
+      {delta !== undefined && compact && <span className={`text-[10px] font-semibold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{delta >= 0 ? '+' : '−'}{Math.abs(Math.round(delta))}{runway != null && runway < 5 && <b className="ml-0.5">{Math.max(0, Math.floor(runway))}d</b>}</span>}
     </div>
   );
 }

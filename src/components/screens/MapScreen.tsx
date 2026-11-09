@@ -13,6 +13,7 @@ import { ConditionalComposer } from '@/components/game/ConditionalComposer';
 import { OperationPopup } from '@/components/game/OperationPopup';
 import { useIsDesktop } from '@/lib/useMediaQuery';
 import { radar } from '@/lib/radar';
+import { MapLegend } from '@/components/game/MapLegend';
 import { useReady } from '@/components/game/ReadyGuard';
 import { sfx } from '@/lib/sfx';
 import { buildReplay, type ReplayStep } from '@/lib/replay';
@@ -98,14 +99,23 @@ export function MapScreen() {
   const stableSelect = useCallback((id: string | null) => selRef.current(id), []);
   const startOp = (target: string | null) => { g.select(null); setOp({ target, from: null }); };
   const popupOpen = !!op || (!!sel && !composer);
-  const cycle = () => setOverlay((o) => (o === 'owners' ? 'regions' : o === 'regions' ? 'production' : 'owners'));
+  const LAYER_NAME = { owners: 'Vlasnici', regions: 'Regije', production: 'Proizvodnja' } as const;
+  const [layerHint, setLayerHint] = useState<string | null>(null);
+  const cycle = () => { const nx = overlay === 'owners' ? 'regions' : overlay === 'regions' ? 'production' : 'owners'; setOverlay(nx); setLayerHint(`Prikaz: ${LAYER_NAME[nx]}`); setTimeout(() => setLayerHint(null), 1800); };
+  const [legend, setLegend] = useState(false);
+  useEffect(() => {
+    // prvi posjet karti: kratko objašnjenje znakova (jednom)
+    if (g.id === 'tutorial') return;
+    try { if (!localStorage.getItem('dom_legend_seen')) { const t = setTimeout(() => setLegend(true), 1100); return () => clearTimeout(t); } } catch { /* */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const closeLegend = () => { setLegend(false); try { localStorage.setItem('dom_legend_seen', '1'); } catch { /* */ } };
 
   const tools: Array<{ icon: IconName; label: string; onClick?: () => void; href?: string; active?: boolean; tour?: string }> = [
-    { icon: 'cursor', label: 'Odabir', active: !op, onClick: () => setOp(null) },
     { icon: 'expand', label: 'Prilagodi prikaz', onClick: () => setFitSignal((n) => n + 1) },
     { icon: 'layers', label: `Sloj: ${overlay === 'owners' ? 'vlasnici' : overlay === 'regions' ? 'regije' : 'proizvodnja'}`, onClick: cycle, tour: 'layers' },
     { icon: 'swords', label: 'Vojna operacija', active: !!op, onClick: () => (op ? setOp(null) : startOp(sel && sel.owner !== v.me.id ? sel.id : null)), tour: 'tool-op' },
-    { icon: 'flask', label: 'Istraživanje', href: `/k/${g.id}/tehnologija` },
+    { icon: 'info', label: 'Kako čitati kartu', onClick: () => setLegend(true), tour: 'legend-btn' },
     ...(v.phase === 'planning' ? [{ icon: (v.me.ready ? 'unlock' : 'lock') as IconName, label: v.me.ready ? 'Otključaj naredbe' : 'Zaključaj naredbe (spremno)', active: v.me.ready, onClick: ready.toggle, tour: 'tool-ready' }] : []),
   ];
 
@@ -115,8 +125,8 @@ export function MapScreen() {
 
       {/* radar: što se događa uz tvoje granice — klik otvara detalje */}
       {hits.length > 0 && !op && !replay && (
-        <div className="absolute left-3 top-[3.75rem] z-10 max-w-[19rem] w-[calc(100%-1.5rem)] lg:w-[19rem]" data-testid="radar">
-          <button className="flex items-center gap-2 rounded-full bg-white float-shadow pl-3 pr-3.5 h-9 text-sm font-semibold" onClick={() => setRadarOpen((o) => !o)} aria-expanded={radarOpen}>
+        <div className="absolute left-3 top-3 lg:top-[3.75rem] z-10 max-w-[19rem] w-[calc(100%-1.5rem)] lg:w-[19rem]" data-testid="radar">
+          <button className="flex items-center gap-2 rounded-full bg-white float-shadow pl-3 pr-3 h-8 lg:h-9 text-xs lg:text-sm font-semibold" onClick={() => setRadarOpen((o) => !o)} aria-expanded={radarOpen}>
             {hits.some((h) => h.kind === 'threat') ? <span className="h-2 w-2 rounded-full bg-bad animate-pulse" /> : <span className="h-2 w-2 rounded-full bg-good" />}
             {hits.filter((h) => h.kind === 'threat').length > 0 && <span>{hits.filter((h) => h.kind === 'threat').length} {hits.filter((h) => h.kind === 'threat').length === 1 ? 'prijetnja' : 'prijetnje'}</span>}
             {hits.filter((h) => h.kind === 'chance').length > 0 && <span className="text-good">{hits.filter((h) => h.kind === 'chance').length} {hits.filter((h) => h.kind === 'chance').length === 1 ? 'prilika' : 'prilike'}</span>}
@@ -134,18 +144,21 @@ export function MapScreen() {
 
       {/* sloj + legenda (plutajuće, bez okvira) */}
       <div className="absolute top-3 left-3 right-3 lg:right-auto flex items-center gap-2 pointer-events-none">
-        <div className="pointer-events-auto w-full max-w-[17rem] bg-white rounded-xl"><Seg small value={overlay} onChange={setOverlay} options={[{ value: 'owners', label: 'Vlasnici' }, { value: 'regions', label: 'Regije' }, { value: 'production', label: 'Proizvodnja' }]} /></div>
+        <div className="pointer-events-auto w-full max-w-[17rem] bg-white rounded-xl hidden lg:block"><Seg small value={overlay} onChange={setOverlay} options={[{ value: 'owners', label: 'Vlasnici' }, { value: 'regions', label: 'Regije' }, { value: 'production', label: 'Proizvodnja' }]} /></div>
       </div>
       <div className="absolute left-3 bottom-4 hidden lg:flex flex-col gap-1.5 pointer-events-none" data-tour="legend">
         {MAP_REL_LABELS.map((r) => <div key={r.key} className="flex items-center gap-2 text-xs font-semibold text-neutral-600"><span className="h-2.5 w-2.5 rounded-full" style={{ background: REL[r.key] }} />{r.label}</div>)}
       </div>
 
       {/* zoom */}
-      <div className="absolute right-3 top-3 lg:top-auto lg:bottom-4 flex flex-col rounded-full bg-white float-shadow overflow-hidden" style={{ right: popupOpen ? undefined : undefined }}>
+      <div className="absolute right-3 bottom-4 hidden lg:flex flex-col rounded-full bg-white float-shadow overflow-hidden">
         <button className="h-11 w-11 grid place-items-center text-neutral-700 active:bg-neutral-50" aria-label="Povećaj" onClick={() => setZoomSignal((n) => n + 1)}><Icon name="plus" size={20} /></button>
         <div className="h-px bg-line mx-2" />
         <button className="h-11 w-11 grid place-items-center text-neutral-700 active:bg-neutral-50" aria-label="Smanji" onClick={() => setZoomSignal((n) => n - 1)}><Icon name="minus" size={20} /></button>
       </div>
+
+      {layerHint && <div className="absolute left-1/2 -translate-x-1/2 top-3 lg:hidden rounded-full bg-ink text-white text-xs font-semibold px-3.5 py-1.5 float-shadow pointer-events-none" data-testid="layer-hint">{layerHint}</div>}
+      <MapLegend open={legend} onClose={closeLegend} />
 
       {/* plutajuća alatna traka */}
       <div className={`absolute left-1/2 -translate-x-1/2 bottom-4 ${popupOpen ? 'max-lg:hidden' : ''}`}>
@@ -175,7 +188,7 @@ export function MapScreen() {
 
       {ready.dialog}
       {/* kontekstualni popupi */}
-      <Sheet open={!!sel && !op && !composer} onClose={() => g.select(null)} title="Teritorij" side modeless>
+      <Sheet open={!!sel && !op && !composer} onClose={() => g.select(null)} title="Teritorij" side modeless peek>
         {sel && <TerritoryDetails key={sel.id} t={sel} onAction={(type, id) => setComposer({ type, territoryId: id })} onOperation={(id) => startOp(id)} />}
       </Sheet>
       <Sheet open={!!op} onClose={() => setOp(null)} title="Vojna operacija" side modeless>

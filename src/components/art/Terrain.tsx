@@ -91,9 +91,8 @@ export function terrainDecor(terrain: TerrainType, seed: string, r: number): Rea
   const j = (a: number) => (rng.next() * 2 - 1) * a * k;
   switch (terrain) {
     case 'plains': return (<g>
-      <Tuft x={-18 * k + j(4)} y={-6 * k + j(4)} /><Tuft x={16 * k + j(4)} y={-12 * k + j(3)} /><Tuft x={-8 * k + j(4)} y={14 * k + j(3)} /><Tuft x={20 * k + j(3)} y={12 * k + j(3)} />
-      <Flower x={-14 * k + j(3)} y={6 * k + j(3)} c="#F4B6CB" /><Flower x={10 * k + j(3)} y={-4 * k + j(3)} c="#FFE27A" /><Flower x={4 * k + j(3)} y={16 * k} c="#fff" />
-      {rng.next() < 0.34 && <><Hut x={-12 * k + j(3)} y={-8 * k} s={k * 1.1} /><Hut x={-2 * k + j(3)} y={-2 * k} s={k * 0.85} /></>}
+      <Tuft x={-16 * k + j(4)} y={4 * k + j(4)} />
+      {rng.next() < 0.45 && <><Hut x={-12 * k + j(3)} y={-8 * k} s={k * 1.1} /><Hut x={-2 * k + j(3)} y={-2 * k} s={k * 0.85} /></>}
     </g>);
     case 'forest': return (<g>
       <Pine x={-17 * k + j(2)} y={-4 * k + j(2)} s={k * 1.05} tone={0} /><Pine x={-6 * k + j(2)} y={-12 * k + j(2)} s={k * 1.15} tone={1} /><Pine x={9 * k + j(2)} y={-9 * k + j(2)} s={k * 1.05} tone={2} />

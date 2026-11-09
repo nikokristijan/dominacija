@@ -166,7 +166,7 @@ function TopBar({ id }: { id: string }) {
           <Link href={`/k/${id}/obavijesti`} className="relative grid place-items-center h-10 w-10 rounded-full text-neutral-500 hover:bg-neutral-50" aria-label="Obavijesti"><Icon name="bell" size={20} />{g.unread > 0 && <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />}</Link>
         </div>
       </div>
-      <div className="lg:hidden scroll-x px-3 pb-2 gap-4">
+      <div className="lg:hidden scroll-x px-3 pb-2 gap-3">
         <ResPill name="food" value={v.me.resources.food} delta={net.food} runway={net.food < -0.05 ? v.me.resources.food / -net.food : null} compact />
         <ResPill name="gold" value={v.me.resources.gold} delta={net.gold} runway={net.gold < -0.05 ? v.me.resources.gold / -net.gold : null} compact />
         <ResPill name="iron" value={v.me.resources.iron} delta={net.iron} runway={net.iron < -0.05 ? v.me.resources.iron / -net.iron : null} compact />

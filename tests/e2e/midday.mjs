@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 const base = process.argv[2] ?? 'http://localhost:3100', out = process.argv[3] ?? '/tmp';
 const errors = [];
 const b = await chromium.launch();
-const ctx = await b.newContext({ viewport: { width: 1100, height: 1000 } }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); } catch {} });
+const ctx = await b.newContext({ viewport: { width: 1100, height: 1000 } }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_no_edition', '1'); localStorage.setItem('dom_legend_seen', '1'); } catch {} });
 const p = await ctx.newPage(); p.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 const step = async (n, fn) => { try { await fn(); console.log('OK  ', n); } catch (e) { console.log('FAIL', n, '-', e.message.slice(0, 500)); errors.push(n); } };
 let id;

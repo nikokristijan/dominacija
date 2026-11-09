@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 const base = process.argv[2] ?? 'http://localhost:3100', out = process.argv[3] ?? '/tmp', mobile = process.argv[4] === 'mobile';
 const errors = [];
 const b = await chromium.launch();
-const ctx = await b.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: 1.5, isMobile: mobile, hasTouch: mobile });
+const ctx = await b.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: 1.5, isMobile: mobile, hasTouch: mobile }); await ctx.addInitScript(() => { try { localStorage.setItem('dom_legend_seen', '1'); } catch {} });
 const p = await ctx.newPage(); p.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 const step = async (n, fn) => { try { await fn(); console.log('OK  ', n); } catch (e) { console.log('FAIL', n, '-', e.message.slice(0, 400)); errors.push(n); } };
 await step('priprema', async () => {

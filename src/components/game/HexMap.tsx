@@ -96,7 +96,7 @@ const MarkLayer = memo(function MarkLayer({ c, selected, showName, armyLabel, fo
       {camp && <g transform={`translate(${cx - 17} ${gy - 20})`}><circle r="8.5" fill="#C9A24A" stroke="#fff" strokeWidth="1.6" /><g color="#fff" transform="translate(-5 -5)"><Icon name="flag" size={10} stroke={2.4} /></g></g>}
       {badge && (
         <g>
-          <path className="pulse-ring" d={pathFor(cx, cy, SIZE - 3, lift)} fill="none" stroke={badge === 'threat' ? '#D1453B' : '#2F9E62'} strokeWidth="3" />
+          <path d={pathFor(cx, cy, SIZE - 3, lift)} fill="none" stroke={badge === 'threat' ? '#D1453B' : '#2F9E62'} strokeWidth="3" />
           <g transform={`translate(${cx + 17} ${gy - 20})`}><circle r="8.5" fill={badge === 'threat' ? '#D1453B' : '#2F9E62'} stroke="#fff" strokeWidth="1.6" /><text textAnchor="middle" y="3.6" fontSize="11" fontWeight="800" fill="#fff">{badge === 'threat' ? '!' : '+'}</text></g>
         </g>
       )}
@@ -147,7 +147,7 @@ export const HexMap = memo(function HexMap({ view, selectedId, onSelect, highlig
     raf.current = 0;
     const t = tfRef.current;
     if (layerRef.current) layerRef.current.style.transform = `translate3d(${t.x}px,${t.y}px,0) scale(${t.k})`;
-    labelEls.current.forEach((el, key) => { const [x, y] = (el.dataset.p ?? '0,0').split(',').map(Number); el.setAttribute('transform', `translate(${(x * t.k + t.x).toFixed(1)} ${(y * t.k + t.y).toFixed(1)})`); void key; });
+    labelEls.current.forEach((el) => { const [x, y] = (el.dataset.p ?? '0,0').split(',').map(Number); const off = el.dataset.off === '1' ? 8 * t.k + 10 : 0; el.setAttribute('transform', `translate(${(x * t.k + t.x).toFixed(1)} ${(y * t.k + t.y + off).toFixed(1)})`); });
   }, []);
   const setTf = useCallback((n: { x: number; y: number; k: number } | ((t: { x: number; y: number; k: number }) => { x: number; y: number; k: number })) => {
     const next = typeof n === 'function' ? n(tfRef.current) : n;
@@ -311,7 +311,7 @@ export const HexMap = memo(function HexMap({ view, selectedId, onSelect, highlig
 
   // Imena: regije (pregled) + glavni gradovi; s približavanjem i gradovi/zgrade, a na kraju sva imena. Fiksna veličina na ekranu.
   const labels = useMemo(() => {
-    const out: Array<{ id: string; x: number; y: number; text: string; kind: 'region' | 'capital' | 'place' | 'minor'; color: string; sub?: string }> = [];
+    const out: Array<{ id: string; x: number; y: number; text: string; kind: 'region' | 'capital' | 'own' | 'place' | 'minor'; color: string; sub?: string }> = [];
     for (const r of view.map.regions) {
       const ids = r.territoryIds.filter((id) => geo.cells[id] && sup[id].terrain !== 'water');
       if (!ids.length) continue;
@@ -321,24 +321,26 @@ export const HexMap = memo(function HexMap({ view, selectedId, onSelect, highlig
     for (const c of cells) {
       const t = c.t; if (t.terrain === 'water') continue;
       const col = c.rel ? REL[c.rel] : '#6B6B6B';
-      const kind = t.isCapital ? 'capital' : (t.building || t.owner === meId || t.importance >= 4) ? 'place' : 'minor';
-      out.push({ id: t.id, x: c.cx, y: c.cy + SIZE * 0.62, text: t.name, kind, color: col });
+      const kind = t.isCapital ? 'capital' : t.owner === meId ? 'own' : (t.building || t.importance >= 4) ? 'place' : 'minor';
+      out.push({ id: t.id, x: c.cx, y: c.cy + 17, text: t.name, kind, color: col }); // ispod oznake vojske; pomak na ekranu dodaje paint()
     }
     return out;
   }, [view.map.regions, cells, geo, sup, meId]);
   // Raspored oznaka: prioritet (odabrano > glavni grad > mjesto > ostalo), a one koje se sudaraju ili su izvan ekrana ne crtamo.
   const visibleLabels = useMemo(() => {
     const k = tfState.k, W0 = box.w, H0 = box.h;
-    const rank = (l: (typeof labels)[number]) => (l.id === selectedId ? 0 : l.kind === 'capital' ? 1 : l.kind === 'region' ? 2 : l.kind === 'place' ? 3 : 4);
+    const small = W0 < 700; // mobitel: manje imena, veće razmake — pregled važniji od popisa svih mjesta
+    const rank = (l: (typeof labels)[number]) => (l.id === selectedId ? 0 : l.kind === 'capital' ? 1 : l.kind === 'own' ? 2 : l.kind === 'region' ? 3 : l.kind === 'place' ? 4 : 5);
     const placed: Array<[number, number, number, number]> = [];
     const out: typeof labels = [];
     for (const l of [...labels].sort((a, b) => rank(a) - rank(b))) {
       if (l.kind === 'region' && ratio >= 1.6) continue;
-      if (l.kind === 'place' && ratio < 1.15 && l.id !== selectedId) continue;
-      if (l.kind === 'minor' && ratio < 1.9 && l.id !== selectedId) continue;
-      const sx = l.x * k + tfState.x, sy = l.y * k + tfState.y;
+      if (l.kind === 'own' && ratio < 0.9 && l.id !== selectedId) continue;
+      if (l.kind === 'place' && ratio < (small ? 2.3 : 1.15) && l.id !== selectedId) continue;
+      if (l.kind === 'minor' && ratio < (small ? 3.4 : 1.9) && l.id !== selectedId) continue;
+      const sx = l.x * k + tfState.x, sy = l.y * k + tfState.y + (l.kind === 'region' ? 0 : 8 * k + 10);
       const fs = l.kind === 'region' ? 13 : 11.5;
-      const w = l.text.length * fs * (l.kind === 'region' ? 0.95 : 0.6) + 6;
+      const w = l.text.length * fs * (l.kind === 'region' ? 0.95 : 0.6) + (small ? 18 : 8);
       const r: [number, number, number, number] = [sx - w / 2, sy - fs, sx + w / 2, sy + 5];
       if (r[2] < -20 || r[0] > W0 + 20 || r[3] < -10 || r[1] > H0 + 10) continue;
       if (placed.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) continue;
@@ -388,7 +390,6 @@ export const HexMap = memo(function HexMap({ view, selectedId, onSelect, highlig
               if (t.visibility === 'own' && t.garrison) { const n = unitTotal(t.garrison); if (n > 0) armyLabel = `${n}`; }
               else if (t.armyEstimate?.range && t.armyEstimate.range.max > 0) armyLabel = `~${Math.round((t.armyEstimate.range.min + t.armyEstimate.range.max) / 2)}`;
               else if (t.armyEstimate?.exact) armyLabel = `${unitTotal(t.armyEstimate.exact)}`;
-              else if (t.owner && t.visibility === 'far') armyLabel = '?';
             }
             return <MarkLayer key={t.id} c={c} selected={selectedId === t.id} showName={false} armyLabel={armyLabel} fog={t.visibility === 'far'}
               mine={t.owner === meId} unsupplied={t.owner === meId && t.supplied === false} production={overlay === 'production'} hl={highlights?.[t.id]} badge={badges?.[t.id]} camp={!!t.camp} />;
@@ -409,12 +410,12 @@ export const HexMap = memo(function HexMap({ view, selectedId, onSelect, highlig
       {/* oznake: fiksna veličina na ekranu, pozicija se ažurira izravno u DOM-u */}
       <svg className="absolute left-0 top-0 pointer-events-none" width={box.w} height={box.h} aria-hidden="true">
         {visibleLabels.map((l) => (
-          <g key={l.id} data-p={`${l.x},${l.y}`} ref={(el) => {
-            if (el) { labelEls.current.set(l.id, el); const t = tfRef.current; el.setAttribute('transform', `translate(${(l.x * t.k + t.x).toFixed(1)} ${(l.y * t.k + t.y).toFixed(1)})`); } else labelEls.current.delete(l.id);
+          <g key={l.id} data-p={`${l.x},${l.y}`} data-off={l.kind === 'region' ? '0' : '1'} ref={(el) => {
+            if (el) { labelEls.current.set(l.id, el); const t = tfRef.current; const off = l.kind === 'region' ? 0 : 8 * t.k + 10; el.setAttribute('transform', `translate(${(l.x * t.k + t.x).toFixed(1)} ${(l.y * t.k + t.y + off).toFixed(1)})`); } else labelEls.current.delete(l.id);
           }}>
             {l.kind === 'region'
-              ? <text textAnchor="middle" fontSize="13" fontWeight="700" letterSpacing="3.5" fill="#171717" fillOpacity="0.42" stroke="#fff" strokeOpacity="0.75" strokeWidth="3.5" paintOrder="stroke" strokeLinejoin="round">{l.text.toUpperCase()}</text>
-              : <text textAnchor="middle" fontSize={l.kind === 'capital' ? 12.5 : l.kind === 'place' ? 11.5 : 11} fontWeight={l.kind === 'capital' ? 750 : 650} fill={l.kind === 'capital' ? l.color : '#262626'} stroke="#fff" strokeWidth="3.6" paintOrder="stroke" strokeLinejoin="round">{l.text}</text>}
+              ? <text textAnchor="middle" fontSize="12" fontWeight="650" letterSpacing="3" fill="#171717" fillOpacity="0.34" stroke="#fff" strokeOpacity="0.6" strokeWidth="3" paintOrder="stroke" strokeLinejoin="round">{l.text.toUpperCase()}</text>
+              : <text textAnchor="middle" fontSize={l.kind === 'capital' ? 12 : l.kind === 'own' ? 11.5 : l.kind === 'place' ? 10.5 : 10} fontWeight={l.kind === 'capital' ? 700 : l.kind === 'own' ? 650 : l.kind === 'place' ? 560 : 500} fill={l.kind === 'own' ? '#5F2BD0' : l.kind === 'capital' ? '#171717' : '#2E2E2E'} stroke="#fff" strokeOpacity="0.92" strokeWidth="2.6" paintOrder="stroke" strokeLinejoin="round" style={{ letterSpacing: '0.1px' }}>{l.text}</text>}
           </g>))}
       </svg>
     </div>
