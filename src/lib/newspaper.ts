@@ -42,6 +42,7 @@ export function buildEdition(v: PlayerView, round: number): Edition | null {
     if (e.category === 'diplomacy') { items.push({ id: e.id, kind: 'diplomacy', title: 'Diplomacija', text: e.text }); if (/izda|prekin|raskin/i.test(e.text)) pick(8, 'Izdaja! Savez je pao'); else pick(2, 'Dogovori iza zatvorenih vrata'); }
     else if (e.category === 'espionage') items.push({ id: e.id, kind: 'spy', title: 'Obavještajna služba', text: e.text });
     else if (e.category === 'event') { items.push({ id: e.id, kind: 'news', title: 'Svjetski događaj', text: e.text }); pick(2, e.text.length < 60 ? e.text : 'Svijet se mijenja'); }
+    else if ((e.category === 'military' || e.category === 'territory') && e.refs?.territoryId && e.audience.includes(me)) { items.push({ id: e.id, kind: e.severity === 'bad' ? 'bad' : 'news', title: e.category === 'territory' ? 'Promjena na karti' : 'Vijesti s bojišta', text: e.text, territoryId: e.refs.territoryId }); pick(e.severity === 'bad' ? 7 : 3, e.text.length < 70 ? e.text : 'Karta se mijenja'); }
     else if (e.category === 'achievement') { items.push({ id: e.id, kind: 'good', title: 'Postignuće', text: e.text }); pick(5, 'Nova slava za tvoje kraljevstvo'); }
     else if (e.severity === 'bad' && e.category !== 'military') items.push({ id: e.id, kind: 'bad', title: 'Upozorenje', text: e.text });
   }
@@ -62,10 +63,12 @@ export function buildEdition(v: PlayerView, round: number): Edition | null {
     headline = myIdx === 0 ? 'Na vrhu si. Pitanje je samo koliko dugo' : round === 1 ? `${leader} izlazi u vodstvo — još nije kasno` : `${leader} vodi, ali tišina vara`;
   }
 
+  const op = v.me.objectiveProgress;
+  const goal = op && !op.done && op.target > 0 && op.current / op.target >= 0.5 ? `Tajni cilj „${v.me.objective.title}”: ${op.label}. Još malo!` : null;
   const nextEv = v.events.find((e) => e.round === v.round && e.announced) ?? v.events.find((e) => e.round === v.round + 1 && e.announced);
   const left = v.totalRounds - round;
-  const teaser = nextEv && nextEv.type !== 'none' ? `Danas stiže: ${nextEv.title}. ${nextEv.effects[0] ?? ''}`.trim()
-    : left <= 1 ? 'Posljednji dan! Sve ili ništa.' : left <= 3 ? `Još ${left} dana — vrijeme je za odlučne poteze.` : 'Što će tvoji protivnici smisliti do sutra?';
+  const teaser = goal ?? (nextEv && nextEv.type !== 'none' ? `Danas stiže: ${nextEv.title}. ${nextEv.effects[0] ?? ''}`.trim()
+    : left <= 1 ? 'Posljednji dan! Sve ili ništa.' : left <= 3 ? `Još ${left} dana — vrijeme je za odlučne poteze.` : 'Što će tvoji protivnici smisliti do sutra?');
 
   return { round, headline, kicker: `Dominacija Glasnik · dan ${round}`, score: { before: rep.scoreBefore, after: rep.scoreAfter }, rank: { before: rankBefore, after: rankAfter }, items: items.slice(0, 6), rival, teaser };
 }

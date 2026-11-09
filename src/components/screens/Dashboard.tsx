@@ -56,6 +56,10 @@ export function Dashboard() {
               {rem !== null && rem <= 0 && planning && <div className="text-sm text-muted mt-1">Rok je istekao — razrješenje svaki čas…</div>}
             </>)}
           </div>
+          {planning && v.playerOrder.some((id) => id !== v.me.id && !v.players[id].isBot) && (
+            <div className="flex items-center gap-2 flex-wrap" data-testid="ready-strip">
+              {v.playerOrder.filter((id) => id !== v.me.id && !v.players[id].isBot).map((id) => { const pl = v.players[id]; const ok = pl.ready; return <span key={id} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${ok ? 'border-green-200 bg-green-50 text-green-800' : 'border-line text-neutral-600'}`}><span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-good' : 'bg-neutral-300'}`} />{pl.name}{!ok && ' razmišlja…'}</span>; })}
+            </div>)}
           {planning && (<div className="space-y-2.5">
             <div className="flex items-center justify-between text-sm"><span className="text-muted">Zapovjedni bodovi danas</span><span className="font-semibold" data-testid="cp-chip">{v.cp.used}/{v.cp.available} ZB</span></div>
             <Progress value={v.cp.used} max={v.cp.available} />

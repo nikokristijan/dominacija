@@ -15,6 +15,7 @@ await step('priprema', async () => {
   if (await p.locator('[data-testid=morning-edition]').count()) throw new Error('izdanje se ne smije pojaviti pri prvom ulasku');
 });
 await step('rank-strip na početnoj', async () => { await p.waitForSelector('[data-testid=rank-strip]'); });
+await step('botovi se javljaju prvi dan', async () => { await p.waitForSelector('[data-testid=suggestions]'); const t = await p.locator('[data-testid=suggestions]').textContent(); if (!t.includes('ti piše')) throw new Error('nema poruke bota: ' + t.slice(0, 200)); });
 await step('razrješenje → izdanje', async () => {
   await p.click('[data-testid=dev-resolve]'); await p.waitForSelector('[data-testid=morning-edition]', { timeout: 15000 });
   await p.waitForSelector('[data-testid=edition-headline]'); await p.waitForTimeout(3500); await p.screenshot({ path: `${out}/${mobile ? 'm' : 'd'}-edition.png` });
@@ -27,6 +28,21 @@ await step('zatvaranje + ne vraća se', async () => {
 });
 await step('ponovni prikaz iz izvještaja', async () => {
   await p.goto(p.url().replace(/\/?$/, '') + '/izvjestaji'); await p.click('[data-testid=open-edition]'); await p.waitForSelector('[data-testid=morning-edition]'); await p.click('[data-testid=edition-continue]');
+});
+await step('ponavljanje bitki na karti', async () => {
+  const root = p.url().replace(/\/izvjestaji.*$/, '');
+  for (let i = 0; i < 5; i++) {
+    await p.goto(root); await p.waitForSelector('[data-testid=dashboard]');
+    await p.click('[data-testid=dev-resolve]'); await p.waitForSelector('[data-testid=morning-edition]', { timeout: 15000 }); await p.waitForTimeout(2200);
+    if (await p.locator('[data-testid=edition-map]').count()) {
+      await p.click('[data-testid=edition-map]'); await p.waitForSelector('[data-testid=replay-banner]', { timeout: 8000 }); await p.waitForTimeout(600);
+      await p.screenshot({ path: `${out}/${mobile ? 'm' : 'd'}-replay.png` });
+      const first = await p.locator('[data-testid=replay-banner]').textContent(); await p.waitForFunction((f) => document.querySelector('[data-testid=replay-banner]')?.textContent !== f, first, { timeout: 8000 });
+      await p.click('[data-testid=replay-skip]'); await p.waitForSelector('[data-testid=replay-banner]', { state: 'detached' }); return;
+    }
+    await p.click('[data-testid=edition-continue]');
+  }
+  console.log('     (preskočeno: u ovoj simulaciji igrač nije vidio nijednu bitku — nasumično; ponovi test)');
 });
 console.log('\nGreške:', errors.length ? errors.join(', ') : 'nema');
 await b.close(); process.exit(errors.length ? 1 : 0);

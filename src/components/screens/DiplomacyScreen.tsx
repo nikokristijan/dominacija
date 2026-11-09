@@ -37,7 +37,7 @@ export function DiplomacyScreen() {
           <div className="space-y-2">{others.map((p) => { const rel = REL[p.relation]; return (
             <div key={p.id} className="card-flat flex items-center gap-3" data-testid={`player-${p.id}`}>
               <FactionBadge faction={p.faction} size={44} />
-              <div className="flex-1 min-w-0"><div className="font-semibold truncate">{p.name} {p.isBot && <span className="chip">bot</span>}</div>
+              <div className="flex-1 min-w-0"><div className="font-semibold truncate">{p.name} {p.isBot && <span className="chip">bot{p.persona ? ` · ${p.persona}` : ''}</span>}</div>
                 <div className="flex flex-wrap gap-1.5 mt-0.5"><span className={`chip ${rel.c}`}>{rel.t}</span><span className="chip">{p.score} bod.</span><span className="chip">{p.territoryCount} teritorija</span>{p.status === 'resistance' && <span className="chip chip-bad">Otpor</span>}</div>
                 <div className="mt-1.5 flex items-center gap-2"><span className="text-[11px] font-semibold text-muted w-12">Ugled</span><Progress className="flex-1 !h-2" value={p.reputation.score} color={p.reputation.score < 35 ? 'bg-bad' : 'bg-neutral-800'} /><span className="text-xs font-semibold w-7 text-right">{Math.round(p.reputation.score)}</span></div></div>
               <div className="flex items-center gap-1.5 shrink-0"><button className="btn btn-ghost btn-sm !px-2.5" onClick={() => { setThread(p.id); setTab('neg'); }} aria-label="Poruka" title="Pošalji poruku"><Icon name="send" size={16} /></button>{planning && <button className="btn btn-purple btn-sm" onClick={() => newOffer(false, p.id)} data-testid={`offer-${p.id}`}>Ponuda</button>}</div>

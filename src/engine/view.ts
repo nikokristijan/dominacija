@@ -11,6 +11,7 @@ import type {
   Alliance, BattleReport, BuildingType, ConditionalOrder, DailyReport, DiplomaticOffer, FactionId, GameState, IntelReport, Message, Order, PlayerId, PlayerState, Region,
   Reputation, Resources, TerrainType, TerritoryEffect, TerritoryId, Units, WorldEvent, ResourceType, ScoreBreakdown,
 } from './types';
+import { botPersonality, PERSONA_LABEL } from './ai';
 import { activeAlliance, computeSupply, playerTerritories, unitTotal } from './util';
 
 export interface TerritoryView {
@@ -24,6 +25,10 @@ export interface PublicPlayer {
   id: PlayerId; name: string; faction: FactionId; isBot: boolean; status: PlayerState['status']; score: number; territoryCount: number; cityCount: number;
   capitalId: TerritoryId; reputation: Pick<Reputation, 'score' | 'brokenTreaties' | 'keptTreaties' | 'betrayals' | 'tradeCount' | 'supportsGiven'>;
   relation: 'self' | 'ally' | 'pact' | 'neutral'; autopilot: boolean;
+  /** Je li igrač označio „spremno” (javno: društveni pritisak, ne otkriva naredbe). */
+  ready: boolean;
+  /** Karakter bota (ratoboran/graditelj/diplomat) — vidljiv jer su botovi jasno označeni. */
+  persona?: string;
   resources?: undefined;
 }
 export interface PlayerView {
@@ -77,7 +82,7 @@ export function getPlayerView(s: GameState, pid: PlayerId): PlayerView {
       territoryCount: playerTerritories(s, id).length, cityCount: playerTerritories(s, id).filter((t) => t.isCapital || t.building === 'city').length,
       capitalId: p.capitalId,
       reputation: { score: p.reputation.score, brokenTreaties: p.reputation.brokenTreaties, keptTreaties: p.reputation.keptTreaties, betrayals: p.reputation.betrayals, tradeCount: p.reputation.tradeCount, supportsGiven: p.reputation.supportsGiven },
-      relation: id === pid ? 'self' : visibleAl ? (al!.kind === 'alliance' ? 'ally' : 'pact') : 'neutral', autopilot: p.autopilot,
+      relation: id === pid ? 'self' : visibleAl ? (al!.kind === 'alliance' ? 'ally' : 'pact') : 'neutral', autopilot: p.autopilot, ready: p.ready, persona: p.isBot ? PERSONA_LABEL[botPersonality(s, id)] : undefined,
     };
   }
   const mine = (a: PlayerId, b: PlayerId) => a === pid || b === pid;

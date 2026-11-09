@@ -7,7 +7,7 @@ import { addConditional, addOrder, removeConditional, removeOrder, reorderOrders
 import { respondToOffer, sendMessage, terminateAlliance, withdrawOffer } from '@/engine/diplomacy';
 import { createCampaignState } from '@/engine/state';
 import { resolveRound } from '@/engine/resolve';
-import { botPlan } from '@/engine/ai';
+import { botPlan, botGreet } from '@/engine/ai';
 import { getPlayerView, type PlayerView } from '@/engine/view';
 import { ranking } from '@/engine/scoring';
 import { FACTION_IDS, GAME_CONFIG } from '@/engine/config';
@@ -164,6 +164,7 @@ function startInternal(db: Db, c: CampaignRecord, by: string) {
     players: c.members.map((m) => ({ id: m.playerId, userId: m.userId, name: m.name, faction: m.faction ?? undefined, isBot: m.isBot })),
   });
   for (const m of c.members) m.faction = c.state.players[m.playerId].faction;
+  if (c.members.some((m) => m.isBot)) { botGreet(c.state, nowIso()); drainNotifications(db, c); }
   void ids;
   c.status = 'active'; c.startedAt = nowIso();
   c.clock = nextClock(c.schedule, new Date());

@@ -3,7 +3,7 @@
  * Botovi koriste isti API i ista ograničenja informacija kao i igrači (procjene, ne stvarno stanje).
  */
 import { UNIT_TYPES } from './config';
-import { respondToOffer, kindLabel } from './diplomacy';
+import { respondToOffer, kindLabel, sendMessage } from './diplomacy';
 import { currentEvent, forecastEconomy } from './economy';
 import { hash01 } from './rng';
 import { addOrder, cpAvailable, cpUsed, previewOrder, setReady, setTax } from './orders';
@@ -16,6 +16,34 @@ const personality = (s: GameState, pid: PlayerId): Personality => {
   const h = hash01(`${s.seed}:bot:${pid}`);
   return h < 0.4 ? 'aggressor' : h < 0.75 ? 'builder' : 'diplomat';
 };
+
+export const botPersonality = personality;
+export const PERSONA_LABEL: Record<Personality, string> = { aggressor: 'ratoboran', builder: 'graditelj', diplomat: 'diplomat' };
+
+const LINES: Record<Personality, { hello: string; hit: string; won: string; lead: string }> = {
+  aggressor: { hello: 'Čuo sam da si novi kralj. Drži granice — ja ne praštam.', hit: 'Napao si moje! Ovo se pamti. Osveta stiže.', won: '{t} je sada moj. Bolje se brani sljedeći put.', lead: 'Vodiš? Ne zadugo.' },
+  builder: { hello: 'Mirno kraljevstvo je bogato kraljevstvo. Ne diraj moje farme.', hit: 'Prijatelju, ovo nije bilo potrebno. Razmisli o miru.', won: 'Nisam htio rat, ali {t} sada pripada meni.', lead: 'Dobro ti ide. Možda trgovina?' },
+  diplomat: { hello: 'Pozdrav, kralju! Savez bi nam obojici koristio. Što kažeš?', hit: 'Razočaran sam. Ali još se možemo dogovoriti.', won: 'Ne uzmi osobno — {t} mi je bio nužan.', lead: 'Svi te gledaju. Pametno je imati prijatelje.' },
+};
+const humans = (s: GameState) => s.playerOrder.filter((id) => !s.players[id].isBot);
+
+/** Prvi dan: svaki bot se javlja svakom čovjeku — likovi dobivaju glas prije nego išta zaigraš. */
+export function botGreet(s: GameState, now: string) {
+  for (const b of s.playerOrder.filter((id) => s.players[id].isBot)) for (const h of humans(s)) sendMessage(s, b, h, LINES[personality(s, b)].hello, now);
+}
+
+/** Reakcije na prošlu rundu: osveta, hvalisanje, ruganje vodećem. Samo na temelju javnih ishoda bitki. */
+export function botReact(s: GameState, pid: PlayerId, now: string) {
+  const L = LINES[personality(s, pid)];
+  const last = s.battles.filter((b) => b.round === s.round - 1);
+  for (const b of last) {
+    const att = b.attackers[0]?.playerId;
+    if (b.defenderId === pid && att && !s.players[att].isBot) sendMessage(s, pid, att, L.hit, now);
+    else if (att === pid && b.outcome === 'attacker_victory' && b.defenderId && !s.players[b.defenderId].isBot) sendMessage(s, pid, b.defenderId, L.won.replace('{t}', b.territoryName), now);
+  }
+  const top = [...s.playerOrder].sort((a, b) => s.scores[b].total - s.scores[a].total)[0];
+  if (top && !s.players[top].isBot && hash01(`${s.seed}:lead:${s.round}:${pid}`) < 0.22) sendMessage(s, pid, top, L.lead, now);
+}
 
 export function botRespondToOffers(s: GameState, pid: PlayerId) {
   const pers = personality(s, pid);
@@ -38,6 +66,7 @@ export function botPlan(s: GameState, pid: PlayerId, now: string) {
   const pers = personality(s, pid);
   const R = s.round;
   botRespondToOffers(s, pid);
+  if (R > 1) botReact(s, pid, now);
   const submit = (o: OrderInput) => addOrder(s, pid, o, 'submitted', now);
   const left = () => cpAvailable(s, p) - cpUsed(s, pid);
   const mine = () => playerTerritories(s, pid);

@@ -80,7 +80,7 @@ await step('lock+resolve', async () => {
 await step('notifications', async () => { await p.goto(campaignUrl + '/obavijesti'); await p.waitForSelector('[data-testid=notifications-screen]'); await p.waitForTimeout(400); await shot('20-notifications'); });
 await step('full-campaign+results', async () => {
   await p.goto(campaignUrl); await p.waitForSelector('[data-testid=dev-resolve-all]'); await p.click('[data-testid=dev-resolve-all]'); await p.waitForSelector('text=Kampanja završena', { timeout: 20000 });
-  await p.goto(campaignUrl + '/rezultati'); await p.waitForSelector('[data-testid=results-screen]'); await p.waitForTimeout(1200); await shot('21-results');
+  await p.goto(campaignUrl + '/rezultati'); await p.waitForSelector('[data-testid=results-screen]'); await p.waitForTimeout(1500); await p.click('[data-testid=results-skip]'); await p.waitForSelector('text=Priznanja'); await shot('21-results');
 });
 await step('admin', async () => { await p.goto(base + '/admin'); await p.waitForSelector('[data-testid=admin]'); await p.waitForSelector('[data-testid=admin-campaign]'); await shot('22-admin'); });
 // Desktop

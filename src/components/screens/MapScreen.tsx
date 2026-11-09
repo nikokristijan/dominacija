@@ -12,6 +12,9 @@ import { OrderComposer, ORDER_LABELS } from '@/components/game/OrderComposer';
 import { ConditionalComposer } from '@/components/game/ConditionalComposer';
 import { OperationPopup } from '@/components/game/OperationPopup';
 import { useIsDesktop } from '@/lib/useMediaQuery';
+import { radar } from '@/lib/radar';
+import { sfx } from '@/lib/sfx';
+import { buildReplay, type ReplayStep } from '@/lib/replay';
 
 type Overlay = 'owners' | 'regions' | 'production';
 
@@ -27,6 +30,29 @@ export function MapScreen() {
   const sel = g.selected ? v.territories[g.selected] : null;
   const desktop = useIsDesktop();
 
+  // Ponavljanje bitki prošle runde: kamera ide od jedne do druge, strelice marširaju, pa ishod
+  const [replay, setReplay] = useState<{ list: ReplayStep[]; i: number; stage: 'march' | 'result' } | null>(null);
+  useEffect(() => {
+    if (sp.get('replay') !== '1') return;
+    const list = buildReplay(v, v.round - 1);
+    if (list.length) { g.select(null); setReplay({ list, i: 0, stage: 'march' }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!replay) return;
+    const st = replay.list[replay.i];
+    const t = setTimeout(() => {
+      if (replay.stage === 'march') {
+        if (st.tone === 'good') sfx.win(); else if (st.tone === 'bad') sfx.loss(); else sfx.tick();
+        setReplay({ ...replay, stage: 'result' });
+      } else if (replay.i + 1 < replay.list.length) setReplay({ ...replay, i: replay.i + 1, stage: 'march' });
+      else setReplay(null);
+    }, replay.stage === 'march' ? 1900 : 2100);
+    return () => clearTimeout(t);
+  }, [replay]);
+  const replayBattle = replay ? replay.list[replay.i] : null; // ReplayStep
+
+  useEffect(() => { const f = sp.get('focus'); if (f && v.territories[f]) g.select(f); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const t = sp.get('op'); if (t && v.territories[t]) { setOp({ target: t, from: null }); g.select(null); } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const arrows = useMemo<MapArrow[]>(() => {
@@ -38,6 +64,8 @@ export function MapScreen() {
     if (op?.target && op.from) list.push({ from: op.from, to: op.target, kind: 'plan' });
     return list;
   }, [v.orders, v.round, op]);
+  const replayArrows = useMemo<MapArrow[]>(() => replayBattle ? replayBattle.arrows : [], [replayBattle]);
+  const replayHl = useMemo<Record<string, Highlight>>(() => replayBattle ? { [replayBattle.territoryId]: replayBattle.tone === 'good' ? 'target' : replayBattle.tone === 'bad' ? 'danger' : 'info' } : {}, [replayBattle]);
 
   const highlights = useMemo<Record<string, Highlight>>(() => {
     const h: Record<string, Highlight> = {};
@@ -48,6 +76,8 @@ export function MapScreen() {
     if (op.from) h[op.from] = 'target';
     return h;
   }, [op, v, g.tourTargets]);
+
+  const badges = useMemo(() => { const b: Record<string, 'threat' | 'chance'> = {}; for (const r of radar(v)) if (!b[r.id]) b[r.id] = r.kind; return b; }, [v]);
 
   const onSelect = (id: string | null) => {
     if (op) {
@@ -77,7 +107,7 @@ export function MapScreen() {
 
   return (
     <div className="flex-1 min-h-0 relative bg-white" data-testid="map-area">
-      <HexMap view={v} selectedId={g.selected} onSelect={stableSelect} arrows={arrows} highlights={highlights} overlay={overlay} className="absolute inset-0" fitSignal={fitSignal} zoomSignal={zoomSignal} focusId={!desktop ? (op?.target ?? g.selected) : null} focusBias={0.24} />
+      <HexMap view={v} selectedId={g.selected} onSelect={stableSelect} arrows={replay ? replayArrows : arrows} highlights={replay ? replayHl : highlights} badges={op || replay ? undefined : badges} overlay={overlay} className="absolute inset-0" fitSignal={fitSignal} zoomSignal={zoomSignal} focusId={replayBattle ? replayBattle.territoryId : !desktop ? (op?.target ?? g.selected) : null} focusBias={0.24} />
 
       {/* sloj + legenda (plutajuće, bez okvira) */}
       <div className="absolute top-3 left-3 right-3 lg:right-auto flex items-center gap-2 pointer-events-none">
@@ -105,6 +135,20 @@ export function MapScreen() {
           <Link href={`/k/${g.id}/naredbe`} className="ml-1 h-11 px-4 rounded-full bg-primary-100 text-primary font-semibold text-sm inline-flex items-center gap-1.5" data-tour="orders-link"><Icon name="orders" size={18} />{v.cp.used}/{v.cp.available}</Link>
         </div>
       </div>
+
+      {replay && replayBattle && (() => {
+        const b = replayBattle; const m = replay.stage === 'march' ? b.march : b.result;
+        const tone = replay.stage === 'march' ? 'bg-ink text-white' : b.tone === 'good' ? 'bg-good text-white' : b.tone === 'bad' ? 'bg-bad text-white' : 'bg-ink text-white';
+        return (
+          <div className="absolute left-3 right-3 bottom-[5.5rem] lg:bottom-auto lg:left-auto lg:right-4 lg:top-4 z-20 flex justify-center pointer-events-none" data-testid="replay-banner">
+            <div className={`pointer-events-auto rounded-2xl px-5 py-3 float-shadow max-w-md w-full lg:w-[22rem] transition-colors ${tone}`}>
+              <div className="text-[11px] uppercase tracking-wider opacity-70">Prošli dan · {replay.i + 1} / {replay.list.length}</div>
+              <div className="text-lg font-semibold leading-tight">{m.title}</div>
+              <div className="text-sm opacity-80">{m.sub}</div>
+              <button className="mt-1.5 text-xs font-semibold underline opacity-80" onClick={() => setReplay(null)} data-testid="replay-skip">Preskoči</button>
+            </div>
+          </div>);
+      })()}
 
       {/* kontekstualni popupi */}
       <Sheet open={!!sel && !op && !composer} onClose={() => g.select(null)} title="Teritorij" side modeless>

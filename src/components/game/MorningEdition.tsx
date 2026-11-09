@@ -75,7 +75,7 @@ export function MorningEdition({ round, onClose }: { round: number; onClose: () 
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: D + 1.4 + ed.items.length * 0.28 }} className="mt-auto pt-8 grid gap-2">
           <button className="btn btn-yellow min-h-12 text-base" onClick={onClose} autoFocus data-testid="edition-continue">Planiraj današnji potez</button>
-          {focus && <button className="btn btn-ghost" onClick={() => { onClose(); g.select(focus.territoryId!); router.push(`/k/${g.id}/karta`); }} data-testid="edition-map">Pogledaj na karti</button>}
+          {focus && <button className="btn btn-ghost" onClick={() => { onClose(); g.select(null); router.push(`/k/${g.id}/karta?replay=1`); }} data-testid="edition-map"><Icon name="play" size={16} />Ponovi bitke na karti</button>}
         </motion.div>
       </div>
     </motion.div>

@@ -30,6 +30,7 @@ await step('vlasnik pokreće (botovi popunjavaju)', async () => {
   await a.reload(); await a.waitForSelector('text=Prijatelj'); await a.click('[data-testid=start-campaign]'); await a.waitForSelector('[data-testid=dashboard]', { timeout: 15000 });
   await f.reload(); await f.waitForSelector('[data-testid=dashboard]', { timeout: 15000 });
 });
+await step('status spremnosti prijatelja vidljiv', async () => { await a.waitForSelector('[data-testid=ready-strip]'); const t = await a.locator('[data-testid=ready-strip]').textContent(); if (!t.includes('Prijatelj')) throw new Error(t); });
 await step('oboje spremni → dan 2 (botovi igraju)', async () => {
   await a.click('[data-testid=ready-toggle]'); await a.waitForTimeout(500);
   await f.click('[data-testid=ready-toggle]');
