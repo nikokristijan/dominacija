@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { UNIT_TYPES } from '@/engine/config';
 import type { AttackStrategy, Formation, OrderPreview, RiskPref, SupplyLevel, Units } from '@/engine/types';
-import { unitTotal } from '@/engine/util';
+import { unitTotal, describeUnits } from '@/engine/util';
 import { Icon } from '@/components/art/Icons';
 import { ResourceIcon } from '@/components/art/Resources';
 import { Stepper, Field, Expandable } from '@/components/ui/kit';
@@ -47,7 +47,7 @@ export function OperationPopup({ target, from, setTarget, setFrom, onClose }: { 
   const [step, setStep] = useState(0);
   const [strategy, setStrategy] = useState<AttackStrategy>('direct');
   const [units, setUnits] = useState<Units>({});
-  const [reserve, setReserve] = useState<Units>({});
+  const reserve: Units = {}; // posebna „rezerva” nije potrebna: vojnici koje ne pošalješ ionako ostaju u obrani
   const [formation, setFormation] = useState<Formation>('line');
   const [risk, setRisk] = useState<RiskPref>('balanced');
   const [supply, setSupply] = useState<SupplyLevel>('standard');
@@ -59,7 +59,7 @@ export function OperationPopup({ target, from, setTarget, setFrom, onClose }: { 
 
   const adjSources = useMemo(() => (target ? adjacentOwned(v, target) : []), [v, target]);
   useEffect(() => { if (target && !from && adjSources.length) setFrom([...adjSources].sort((a, b) => unitTotal(freeUnits(v, b)) - unitTotal(freeUnits(v, a)))[0]); }, [target, from, adjSources, v, setFrom]);
-  useEffect(() => { setUnits({}); setReserve({}); }, [from]);
+  useEffect(() => { setUnits({}); }, [from]);
 
   const tgt = target ? v.territories[target] : null;
   const src = from ? v.territories[from] : null;
@@ -111,14 +111,17 @@ export function OperationPopup({ target, from, setTarget, setFrom, onClose }: { 
 
       {step === 1 && src && (<div className="space-y-4">
         <div><div className="label mb-2">Vojnici iz {src.name}</div><UnitPicker view={v} available={free} value={units} onChange={setUnits} /></div>
-        <p className="text-sm text-muted">Nakon odlaska u {src.name} ostaje {unitTotal(afterSend)} branitelja — preporuka: ne ostavljaj teritorij praznim.</p>
+        {(() => { const left = unitTotal(afterSend); return (
+          <div className={`rounded-xl p-3 text-sm flex items-start gap-2.5 ${left === 0 ? 'bg-red-50 text-red-900 border border-red-200' : 'bg-neutral-50 text-neutral-700'}`} data-testid="stays-home">
+            <Icon name="shield" size={18} className="shrink-0 mt-0.5" />
+            <div><b>Ostaje u obrani: {left}</b>{left > 0 && <> ({describeUnits(afterSend)})</>}<div className="text-xs opacity-80 mt-0.5">{left === 0 ? `${src.name} ostaje potpuno neobranjen — protivnik ga može uzeti bez borbe.` : `Vojnici koje ne pošalješ automatski ostaju u ${src.name} i brane ga.`}</div></div>
+          </div>); })()}
       </div>)}
 
       {step === 2 && (<div className="space-y-4">
         <PreviewCard p={preview} />
         <Expandable title="Napredne postavke (strategija, formacija, zalihe, uvjeti)">
           <div className="space-y-5" data-testid="planner-advanced">
-        <div className="rounded-xl border border-line p-3 space-y-2"><div className="label">Rezerva — ostaje u {src?.name}</div><UnitPicker view={v} available={afterSend} value={reserve} onChange={setReserve} /></div>
         <div className="space-y-2"><div className="label">Strategija</div>{STRAT.map((s) => { const i = issue(s.id); return <Choice key={s.id} active={strategy === s.id} disabled={!!i} onClick={() => setStrategy(s.id)} title={s.name} desc={i ?? s.desc} tag={s.tag} testId={`strategy-${s.id}`} />; })}</div>
 
         <div className="space-y-2"><div className="label"><Term id="formacija">Formacija</Term></div>{FORM.map((f) => <Choice key={f.id} active={formation === f.id} onClick={() => setFormation(f.id)} title={f.name} desc={f.desc} testId={`formation-${f.id}`} />)}</div>
